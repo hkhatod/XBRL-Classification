@@ -96,6 +96,10 @@ class TextCNNRNN(object):
 			self.predictions = tf.argmax(self.scores, 1, name='predictions')
 			self.currect_ans = tf.argmax(self.input_y, 1, name='corrent_ans')
 
+		with tf.name_scope('loss'):
+			losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores) #  only named arguments accepted
+			self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
+
 		with tf.name_scope('probabilities'):
 			self.probabilities = tf.nn.softmax(self.scores)
 
@@ -110,10 +114,6 @@ class TextCNNRNN(object):
 
 		with tf.name_scope('high_confidence'):
 			self.conf_high = tf.reduce_max(self.conf, name='high_conf')
-
-		with tf.name_scope('loss'):
-			losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores) #  only named arguments accepted
-			self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
 		with tf.name_scope('accuracy'):
 			correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))

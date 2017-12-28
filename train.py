@@ -10,7 +10,6 @@
 #pylint: disable=E1129
 #pylint: disable=E1101
 #pylint: disable=W1202
-
 #pylint: disable=
 #pylint: disable=
 
@@ -45,8 +44,8 @@ from tensorflow.python import debug as tf_debug
 
 '''
 To implement:
-1. Precision Recall Curves.
-3. Write result to a results summary file.
+1. Implement reading pretrained embeddings.
+3. NCE weights.
 '''
 
 
@@ -66,8 +65,8 @@ def load_trained_params(trained_dir):
 
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
-	input_file = path + sys.argv[1]
-	#input_file = path + 'Base AssetsCurrent/AssetsCurrent.pickle'
+	#input_file = path + sys.argv[1]
+	input_file = path + 'Base AssetsCurrent/AssetsCurrent.pickle'
 	#input_file = path + 'AssetsCurrent Ver 8/AssetsCurrent.pickle'
 	# try:
 	# 	training_config = path + sys.argv[2]
@@ -354,6 +353,16 @@ def train_cnn_rnn():
 			projector.visualize_embeddings(emb_writer, config)
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
+
+	result = '\n'+ params['about'] + ',' + foldername + ',' + str(y_train.shape[1]) + ',' + str(len(x_)) + ',' + str(params['num_epochs']) + ',' + \
+			str(params['batch_size']) + ',' + str(params['dropout_keep_prob']) + ',' +  str(params['embedding_dim']) +',' +  '"'+str(params['filter_sizes'])+'"'+',' +\
+			str(params['hidden_unit']) +',' + str(params['l2_reg_lambda']) + ',' + str(params['max_pool_size']) + ',' + str(params['non_static']) + ',' +\
+			str(params['num_filters']) + ',' + str(float(total_test_correct)/len(y_test))
+
+	fd = open('Result_Summary.csv', 'a')
+	fd.write(result)
+	fd.close()
+
 
 if __name__ == '__main__':
 	train_cnn_rnn()

@@ -234,6 +234,8 @@ def train_cnn_rnn():
                              cnn_rnn.real_len: real_len(x_batch),}
 				_, step, summaries = sess.run([train_op, global_step, train_summary_op], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
+				_, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
+				pr_summary_writer.add_summary(pr_summaries, step)
 
 			def dev_step(x_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
@@ -245,7 +247,7 @@ def train_cnn_rnn():
 				step, summaries, accuracy, num_correct = sess.run([global_step, dev_summary_op, cnn_rnn.accuracy, cnn_rnn.num_correct], feed_dict)
 				sess.run(tf.local_variables_initializer())
 				_, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
-				pr_summary_writer.add_summary(pr_summaries, step)				
+				pr_summary_writer.add_summary(pr_summaries, step)
 				dev_summary_writer.add_summary(summaries, step)
 				return accuracy, num_correct
 
@@ -321,13 +323,13 @@ def train_cnn_rnn():
 				for batch_confidence in batch_confidences:
 					confidences.append(batch_confidence)
 
-			df_meta = pd.DataFrame(columns=['Predicted', 'Correct', 'Confidence', 'element'])
-			df_meta['element'] = pd.concat([df['element_name'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
+			df_meta = pd.DataFrame(columns=['Predicted', 'Category', 'Confidence', 'Element'])
+			df_meta['Element'] = pd.concat([df['element_name'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
 			#df_meta['element'] = pd.concat([df['element'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
 			df_meta['Predicted'] = predict_labels
 			df_meta['Category'] = correct_labels
 			df_meta['Confidence'] = round(confidences[1]*100,2)
-			df_meta['Errors'] = np.where(df_meta['Correct'] == df_meta['Predicted'], 'Positive', 'Negetive')
+			df_meta['Errors'] = np.where(df_meta['Category'] == df_meta['Predicted'], 'Positive', 'Negetive')
 			np_test_outputs = np.array(outputs)
 			df_meta.to_csv(emb_dir + '/' + foldername +'_metadata.tsv', sep='\t', index=False, line_terminator='\n', quotechar='"', doublequote=True)
 			logging.critical('Accuracy on test set: {}'.format(float(total_test_correct) / len(y_test)))

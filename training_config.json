@@ -10,7 +10,12 @@
     "non_static": true,
     "num_epochs": 1,
     "num_filters": 128,
-    "about" :"DSE",
+    "classify_element":"sfp",
+    "documentation":true,
+    "standard_element":true,
+    "standard_ngrams":true,
+    "custom_elements":true,
+    "custom_ngrams":true,
     "continue_training": false,
     "folder_suffix":""
 }

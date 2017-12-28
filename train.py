@@ -65,21 +65,27 @@ def load_trained_params(trained_dir):
 
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
+	base_dir = path + sys.argv[1] +'/'
+	for f in os.listdir(base_dir):
+		if f.endswith(".pickle"):
+			input_file = base_dir + f
+
 	#input_file = path + sys.argv[1]
-	input_file = path + 'Base AssetsCurrent/AssetsCurrent.pickle'
+	#input_file = path + 'Base AssetsCurrent/AssetsCurrent.pickle'
 	#input_file = path + 'AssetsCurrent Ver 8/AssetsCurrent.pickle'
 	# try:
 	# 	training_config = path + sys.argv[2]
 	# 	params = json.loads(open(training_config).read())
 	# 	params['continue_training']=True
 	# except IndexError:
-	training_config = './code/training_config.json'
+	#training_config = './code/training_config.json'
+	training_config = base_dir + 'training_config.json'
 	params = json.loads(open(training_config).read())
 	params['continue_training'] = False
 
 	directory, file = os.path.split(input_file)
 	foldername = os.path.splitext(file)[0]
-	runname = params['about'] + ' do:' + str(params['dropout_keep_prob']) + ' eb_dm:' + str(params['embedding_dim'])+ ' fl_sz:' + params['filter_sizes']  +' hid_ut:'+ str(params['hidden_unit']) + ' l2_reg:'+ str(params['l2_reg_lambda'])+ ' max_pl_sz:' + str(params['max_pool_size']) + ' ep_num:'+ str(params['num_epochs'])
+	runname = ' do:' + str(params['dropout_keep_prob']) + ' eb_dm:' + str(params['embedding_dim'])+ ' fl_sz:' + params['filter_sizes']  +' hid_ut:'+ str(params['hidden_unit']) + ' l2_reg:'+ str(params['l2_reg_lambda'])+ ' max_pl_sz:' + str(params['max_pool_size']) + ' ep_num:'+ str(params['num_epochs'])
 
 	if params['continue_training']:
 		''' Continue training...'''
@@ -88,19 +94,19 @@ def train_cnn_rnn():
 		emb_dir = checkpoint_dir +'emb_viz'
 		i = str(params['folder_suffix'])
 	else:
-		checkpoint_dir = directory +'/'+  foldername + '/'
+		checkpoint_dir = directory +'/'+ 'Trained_' +  foldername + '/'
 		''' i is a folder increment varaiable. Its also used to update the name of tsv file.'''
 		i = 1
 		if os.path.exists(checkpoint_dir):
-			while os.path.exists(directory  +'/'+  foldername  + str(i) + '/'):
+			while os.path.exists(directory  +'/'+ 'Trained_' +  foldername  + str(i) + '/'):
 				i += 1
 				''' dont del i as emb_viz is using for incremnting '''
-			checkpoint_dir = directory  +'/'+  foldername + str(i) + '/' + runname + '/'
+			checkpoint_dir = directory  +'/'+  'Trained_' +foldername + str(i) + '/' + runname + '/'
 		else:
 			''' This del is OK '''
 			del i
 			i = ''
-			checkpoint_dir = directory  +'/'+  foldername + '/' + runname + '/'
+			checkpoint_dir = directory  +'/'+ 'Trained_' + foldername + '/' + runname + '/'
 		params['folder_suffix'] = str(i)
 		os.makedirs(checkpoint_dir)
 		emb_dir = os.path.join(checkpoint_dir, "emb_viz")
@@ -197,15 +203,13 @@ def train_cnn_rnn():
 			conf_low_summary = tf.summary.scalar("confidence_low", cnn_rnn.conf_low, collections='confidence_low')
 			conf_summary = tf.summary.scalar("confidence", cnn_rnn.Avg_conf, collections='confidence')
 			conf_high_summary = tf.summary.scalar("confidence_high", cnn_rnn.conf_high, collections='confidence_high')
-			#pr_curve_summary = tf.summary.scalar("pr_curve", cnn_rnn.pr_curve)
-			logging.warning( 'conf high summay : {}'.format(conf_high_summary))
-			
-			''' PR summaries '''	
+			logging.warning('conf high summay : {}'.format(conf_high_summary))
+
+			''' PR summaries '''
 			pr_summary_op = tf.summary.merge_all()
 			pr_summary_dir = os.path.join(checkpoint_dir, "summaries", "pr")
 			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, sess.graph)
-			
-			
+
 			''' Train Summaries '''
 			train_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
 			train_summary_dir = os.path.join(checkpoint_dir, "summaries", "train")
@@ -240,7 +244,7 @@ def train_cnn_rnn():
                              cnn_rnn.real_len: real_len(x_batch),}
 				step, summaries, accuracy, num_correct = sess.run([global_step, dev_summary_op, cnn_rnn.accuracy, cnn_rnn.num_correct], feed_dict)
 				sess.run(tf.local_variables_initializer())
-				_, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op],feed_dict)
+				_, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
 				pr_summary_writer.add_summary(pr_summaries, step)				
 				dev_summary_writer.add_summary(summaries, step)
 				return accuracy, num_correct
@@ -293,7 +297,7 @@ def train_cnn_rnn():
 						#path = saver.save(sess, checkpoint_prefix +str(current_step) +'.ckpt')
 						#logging.critical('Saved model {} at step {} of total step {}'.format(path, best_at_step, num_batches))
 						logging.critical('Best accuracy {} at step {}'.format(best_accuracy, best_at_step))
-					logging.critical('....................................completed {} steps of total step {}. Completed {} Percent.'.format(current_step, num_batches,int(current_step/num_batches*100)))
+					logging.critical('....................................Completed {} steps of total {} steps. {} % Completed.'.format(current_step, num_batches,int(current_step/num_batches*100)))
 
 			logging.critical('Training is complete, testing the best model on x_test and y_test')
 			''' Evaluate x_test and y_test '''
@@ -354,7 +358,8 @@ def train_cnn_rnn():
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
 
-	result = '\n'+ params['about'] + ',' + foldername + ',' + str(y_train.shape[1]) + ',' + str(len(x_)) + ',' + str(params['num_epochs']) + ',' + \
+	result = '\n'+ foldername + ',' + str(params['documentation']) + ',' + str(params['standard_element']) + ',' + str(params['standard_ngrams']) + ',' + \
+			str(params['custom_elements']) + ',' + str(params['custom_ngrams']) + ',' + str(y_train.shape[1]) + ',' + str(len(x_)) + ',' + str(params['num_epochs']) + ',' + \
 			str(params['batch_size']) + ',' + str(params['dropout_keep_prob']) + ',' +  str(params['embedding_dim']) +',' +  '"'+str(params['filter_sizes'])+'"'+',' +\
 			str(params['hidden_unit']) +',' + str(params['l2_reg_lambda']) + ',' + str(params['max_pool_size']) + ',' + str(params['non_static']) + ',' +\
 			str(params['num_filters']) + ',' + str(float(total_test_correct)/len(y_test))

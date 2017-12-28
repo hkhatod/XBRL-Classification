@@ -22,11 +22,15 @@ import logging
 import os
 import sys
 import gc
+import json
 import pandas as pd
 from input_dataset import sfp_category, soi_category, scf_category
 
 def main():
-    process_element = sys.argv[1]
+    training_config = './code/training_config.json'
+    params = json.loads(open(training_config).read())
+    #process_element = sys.argv[1] replaced by  params['classify_element']
+    
     logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     cc = {}
     cc['SFP'] = sfp_category
@@ -43,12 +47,23 @@ def main():
     i = 0
     path = './training/pickles/standard and documentation/'
     #path = './training/pickles/standard and documentation/'
-    logging.warning('   Started Processing of  {}'.format(process_element))
-    parent = path + statements[i] +'/'+ process_element +'.pickle'
+    logging.warning('   Started Processing of  {}'.format(params['classify_element']))
+    parent = path + statements[i] +'/'+ params['classify_element'] +'.pickle'
     logging.warning('   parent: ' + parent)
-    dest_pickle_file = path + 'training_sets/' + statements[i] +'/' + process_element +'.pickle'
-
-    dest_csv_file = path + 'training_sets/' + statements[i] +'/' + process_element +'.csv'
+    dest_dir = path + 'training_sets/' + statements[i] +'/' + params['classify_element']+'/'
+    '''i is a folder increment varaiable. Its also used to update the name of tsv file.'''
+    fld_spx = 1
+    
+    if os.path.exists(dest_dir):
+        while os.path.exists(path + 'training_sets/' + statements[i] +'/' + params['classify_element']  + str(fld_spx) + '/'):
+            
+            fld_spx += 1
+        dest_dir = path + 'training_sets/' + statements[i] +'/' + params['classify_element']+ str(fld_spx) + '/'
+            
+    os.makedirs(dest_dir)
+    dest_pickle_file = dest_dir + params['classify_element'] +'.pickle'
+    dest_csv_file = dest_dir + params['classify_element'] +'.csv'
+    
     if os.path.isfile(parent): # Check if the parent file exist. If not, go to the next one
         fulldataset = pd.read_pickle(parent, compression='gzip') # load parent dataset
         dataset = pd.DataFrame(columns=['category', 'element'])
@@ -61,7 +76,7 @@ def main():
         #dataset['category'] = fulldataset['category']
         dataset = fulldataset
         dataset = dataset.drop_duplicates(subset=['category', 'element'])
-        dataset.to_csv(path + 'training_sets/' + statements[i] +'/' + process_element+'_dataset' + '.csv')
+        dataset.to_csv(dest_dir + params['classify_element']+'_dataset' + '.csv')
         fulldataset['element_name'] = fulldataset['element']
         '''
         Uncomment below line if not loading base element combinations.
@@ -77,93 +92,84 @@ def main():
         for key, data in dataset.iterrows():
             #logging.warning(key -1 +' processed out of ' + rows_to_process)
             '''
-            Define path for cleaned documentations. comment line below if you want to exclude document.
-            '''
-            doc_file = path + 'cleaned_docs/' +  (data['element']) +'.pickle'
-            '''
-            Define path for base elements combinations or ngrams. comment line below if you want to exclude base element combinations.
-            '''
-            combi_file = path + 'element_combination/'+ (data['element']) +'.pickle'
-            '''
-            Define path for extension element combinations on ngrams. comment if you want to exclude extension element combinations.
-            '''
-            cust_combi_file = path + 'custom_element_combination/'+ (data['element']) +'.pickle'
-            '''
-            # toggle below line with lines above.
-            '''
-            cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
-            '''
             Loading cleaned documentations. comment the IF BLOCK below if you want to exclude document.
             '''
-            if os.path.isfile(doc_file) and data['element'] not in exclude:
-                dof = pd.read_pickle(doc_file, compression='gzip')
-                dof['element_name'] = dof['category']
-                if data['category'] == process_element:# replace process_element with cat[0]
-                    dof['category'] = data['element']
+            if params['documentation']:
+                '''
+                Define path for cleaned documentations. comment line below if you want to exclude document.
+                '''
+                doc_file = path + 'cleaned_docs/' +  (data['element']) +'.pickle'
+                if os.path.isfile(doc_file) and data['element'] not in exclude:
+                    dof = pd.read_pickle(doc_file, compression='gzip')
+                    dof['element_name'] = dof['category']
+                    if data['category'] == params['classify_element']:# replace params['classify_element'] with cat[0]
+                        dof['category'] = data['element']
+                    else:
+                        dof['category'] = data['category']
+                    fulldataset = pd.concat([fulldataset, dof], ignore_index=True)
+                    del dof
+                    gc.collect()
+                    logging.warning('       Completed loading documentation of ' + data['element'] +'.')
                 else:
-                    dof['category'] = data['category']
-                fulldataset = pd.concat([fulldataset, dof], ignore_index=True)
-                del dof
-                gc.collect()
-                logging.warning('       Completed loading documentation of ' + data['element'] +'.')
-            else:
-                logging.warning(doc_file + ' does not exist.')
+                    logging.warning(doc_file + ' does not exist.')
             '''
             Loading base elements combinations or ngrams. comment the IF BLOCK below if you want to exclude base element combinations.
             '''
-            if os.path.isfile(combi_file):
-                df_c = pd.read_pickle(combi_file, compression='gzip')
-                df_c['element_name'] = data['element']
-                if data['category'] == process_element: # replace process_element with cat[0]
-                    df_c['category'] = data['element']
+            if params['standard_ngrams']:
+                combi_file = path + 'element_combination/'+ (data['element']) +'.pickle'
+                if os.path.isfile(combi_file):
+                    df_c = pd.read_pickle(combi_file, compression='gzip')
+                    df_c['element_name'] = data['element']
+                    if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
+                        df_c['category'] = data['element']
+                    else:
+                        df_c['category'] = data['category']
+                    fulldataset = pd.concat([fulldataset, df_c], ignore_index=True)
+                    del df_c
+                    gc.collect()
+                    logging.warning('       Completed loading combinations of ' + data['element'] +'.')
                 else:
-                    df_c['category'] = data['category']
-                fulldataset = pd.concat([fulldataset, df_c], ignore_index=True)
-                del df_c
-                gc.collect()
-                logging.warning('       Completed loading combinations of ' + data['element'] +'.')
-            else:
-                logging.warning(combi_file + ' does not exist.')            
+                    logging.warning(combi_file + ' does not exist.')            
 
-            '''
-            Define path for extension element combinations on ngrams. comment if you want to exclude extension element combinations.
-            '''
-            # cust_data = pd.DataFrame(columns=['category', 'element'])
-            # if (os.path.isfile(cust_file)) and (process_element != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
-            #     df_ce = pd.read_pickle(cust_file, compression='gzip')
-            #     cust_data['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
-            #     if data['category'] == process_element: # replace process_element with cat[0]
-            #         cust_data['category'] = data['element']
-            #     else:
-            #         cust_data['category'] = data['category']
-            #         cust_data['element_name'] = data['element'] 
-            #     fulldataset = pd.concat([fulldataset, cust_data], ignore_index=True)
-            #     del df_ce
-            #     del cust_data
-            #     gc.collect()
-            #     logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
-            # else:
-            #     logging.warning(combi_file + ' does not exist.')
+           
+            if params['custom_elements']:
+                cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
+                cust_data = pd.DataFrame(columns=['category', 'element'])
+                if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
+                    df_ce = pd.read_pickle(cust_file, compression='gzip')
+                    cust_data['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
+                    if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
+                        cust_data['category'] = data['element']
+                    else:
+                        cust_data['category'] = data['category']
+                        cust_data['element_name'] = data['element'] 
+                    fulldataset = pd.concat([fulldataset, cust_data], ignore_index=True)
+                    del df_ce
+                    del cust_data
+                    gc.collect()
+                    logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
+                else:
+                    logging.warning(combi_file + ' does not exist.')
 
-            '''
-            Define path for extension element combinations on ngrams. comment if you want to exclude extension element combinations.
-            '''
-            # cust_combi_data = pd.DataFrame(columns=['category', 'element'])
-            # if (os.path.isfile(cust_combi_file)) and (process_element != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
-            #     df_cc = pd.read_pickle(cust_combi_file, compression='gzip')
-            #     cust_combi_data['element'] = df_cc['element']
-            #     if data['category'] == process_element: # replace process_element with cat[0]
-            #         cust_combi_data['category'] = data['element']
-            #     else:
-            #         cust_combi_data['category'] = data['category']
-            #         cust_combi_data['element_name'] = data['element'] 
-            #     fulldataset = pd.concat([fulldataset, cust_combi_data], ignore_index=True)
-            #     del df_cc
-            #     del cust_combi_data
-            #     gc.collect()
-            #     logging.warning('       Completed loading custom combinations of ' + data['element'] +'.')
-            # else:
-            #     logging.warning(combi_file + ' does not exist.')
+           
+            if params['custom_ngrams']:
+                cust_combi_file = path + 'custom_element_combination/'+ (data['element']) +'.pickle'
+                cust_combi_data = pd.DataFrame(columns=['category', 'element'])
+                if (os.path.isfile(cust_combi_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
+                    df_cc = pd.read_pickle(cust_combi_file, compression='gzip')
+                    cust_combi_data['element'] = df_cc['element']
+                    if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
+                        cust_combi_data['category'] = data['element']
+                    else:
+                        cust_combi_data['category'] = data['category']
+                        cust_combi_data['element_name'] = data['element'] 
+                    fulldataset = pd.concat([fulldataset, cust_combi_data], ignore_index=True)
+                    del df_cc
+                    del cust_combi_data
+                    gc.collect()
+                    logging.warning('       Completed loading custom combinations of ' + data['element'] +'.')
+                else:
+                    logging.warning(combi_file + ' does not exist.')
             
         #fulldataset = fulldataset.append(pd.concat([fulldataset['category'], fulldataset['element'].str.lower()], axis=1, join_axes=[fulldataset.index]), ignore_index=True)
         # fulldataset = fulldataset.append(doc_data, ignore_index=True)
@@ -177,6 +183,8 @@ def main():
         # del cust_combi_data
         fulldataset.to_pickle(dest_pickle_file, compression='gzip')
         fulldataset.to_csv(dest_csv_file)
+        with open(dest_dir + '/training_config.json', 'w') as outfile:
+            json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
         logging.warning('       Pickled ' + dest_pickle_file +'.')
         #del training_set
         

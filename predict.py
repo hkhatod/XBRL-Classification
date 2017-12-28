@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
+from tensorboard import summary as summary_lib
 #from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 import data_helper
 from text_cnn_rnn import TextCNNRNN
@@ -136,10 +137,10 @@ def predict_unseen_data():
 			                     tx_labels=labels,
 								 l2_reg_lambda=params['l2_reg_lambda'])
 
-			''' PR summaries '''	
-			pr_summary_op = tf.summary.merge_all()
-			pr_summary_dir = os.path.join(predicted_dir, "summaries", "pr")
-			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, sess.graph)
+			# ''' PR summaries '''	
+			# pr_summary_op = tf.summary.merge_all()
+			# pr_summary_dir = os.path.join(predicted_dir, "summaries", "pr")
+			# pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, sess.graph)
 						
 			def real_len(batches):
 				return [np.ceil(np.argmin(batch + [0]) * 1.0 / params['max_pool_size']) for batch in batches]
@@ -164,8 +165,8 @@ def predict_unseen_data():
 				
 				predictions, outputs, scores, probabilities, confidences = sess.run([cnn_rnn.predictions, cnn_rnn.output, cnn_rnn.scores, cnn_rnn.probabilities, cnn_rnn.conf], feed_dict)
 				sess.run(tf.local_variables_initializer())
-				_, pr_summaries = sess.run([cnn_rnn.update_op, pr_summary_op],feed_dict)
-				pr_summary_writer.add_summary(pr_summaries)				
+				# _, pr_summaries = sess.run([cnn_rnn.update_op, pr_summary_op],feed_dict)
+				# pr_summary_writer.add_summary(pr_summaries)				
 				return predictions, outputs, scores, probabilities, confidences
 
 			logging.warning(trained_dir)
@@ -237,8 +238,8 @@ def predict_unseen_data():
 			df.to_csv(predicted_dir + 'predictions_all.csv', index=False, columns=columns, sep='|')
 			
 			if y_test is not None:
-				y_test = np.array(np.argmax(y_test, axis=1))
-				accuracy = sum(np.array(predictions) == y_test) / float(len(y_test))
+				y_test_arg = np.array(np.argmax(y_test, axis=1))
+				accuracy = sum(np.array(predictions) == y_test_arg) / float(len(y_test_arg))
 				logging.critical('The prediction accuracy is: {}'.format(accuracy))
 
 			logging.critical('Prediction is complete, all files have been saved: {}'.format(predicted_dir))
@@ -257,6 +258,28 @@ def predict_unseen_data():
 			projector.visualize_embeddings(emb_writer, config)
 			saver_embed.save(sess, predicted_dir + 'viz' +'.ckpt')
 			#print_tensors_in_checkpoint_file(predicted_dir +'viz' +'.ckpt',tensor_name='',all_tensors=True)	
+
+	''' PR summaries '''
+	probabilities = np.array(probabilities)
+	pr_graph = tf.Graph()
+	with pr_graph.as_default():
+		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+		pr_sess = tf.Session(config=session_conf)
+		with pr_sess.as_default():
+			for cat in range(y_test.shape[1]):
+				with tf.name_scope('Predicted_%s' % labels[cat]):
+					_, update_op = summary_lib.pr_curve_streaming_op('pr_curve',
+																		predictions=probabilities[:, cat],
+																		labels=tf.cast(y_test[:, cat], tf.bool),
+																		num_thresholds=11,
+																		metrics_collections='pr',
+																		display_name='n - '+ labels[cat])
+			pr_summary_op = tf.summary.merge_all()
+			pr_summary_dir = os.path.join(predicted_dir, "summaries", "pr")
+			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, pr_sess.graph)
+			pr_sess.run(tf.local_variables_initializer())
+			pr_sess.run([update_op])
+			pr_summary_writer.add_summary(pr_sess.run(pr_summary_op))
 
 if __name__ == '__main__':
 	predict_unseen_data()

@@ -44,7 +44,7 @@ def main():
     #     for key, cats in cc[statements[i]].items():
     #         logging.warning('   Started Processing of ' + cats[0] +'.')
     # """Delete i when implementing for full program"""
-    i = 1
+    i = 0
     path = './training/pickles/standard and documentation/'
     #path = './training/pickles/standard and documentation/'
     logging.warning('   Started Processing of  {}'.format(params['classify_element']))

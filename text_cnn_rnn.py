@@ -127,12 +127,12 @@ class TextCNNRNN(object):
 				correct = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
 				self.num_correct = tf.reduce_sum(tf.cast(correct, 'float'))
 
-		if self.text_labels is not None:
-			for i in range(num_classes):
-				with tf.name_scope('%s' % self.text_labels[i]):
-					_, self.update_op = summary_lib.pr_curve_streaming_op('pr_curve', 
-																			predictions=self.probabilities[:,i], 
-																			labels=tf.cast(self.input_y,tf.bool)[:,i], 
-																			num_thresholds=50, 
-																			metrics_collections='pr' ,
-																			display_name='n - ' + self.text_labels[i])
+		# if self.text_labels is not None:
+		# 	for i in range(num_classes):
+		# 		with tf.name_scope('%s' % self.text_labels[i]):
+		# 			_, self.update_op = summary_lib.pr_curve_streaming_op('pr_curve', 
+		# 																	predictions=self.probabilities[:,i], 
+		# 																	labels=tf.cast(self.input_y,tf.bool)[:,i], 
+		# 																	num_thresholds=self.batch_size, 
+		# 																	metrics_collections='pr' ,
+		# 																	display_name='n - ' + self.text_labels[i])

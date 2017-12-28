@@ -10,12 +10,12 @@
     "non_static": true,
     "num_epochs": 1,
     "num_filters": 128,
-    "classify_element":"sfp",
+    "classify_element":"AssetsCurrent",
     "documentation":true,
     "standard_element":true,
     "standard_ngrams":true,
-    "custom_elements":true,
-    "custom_ngrams":true,
+    "custom_elements":false,
+    "custom_ngrams":false,
     "continue_training": false,
     "folder_suffix":""
 }

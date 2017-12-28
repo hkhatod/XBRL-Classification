@@ -35,7 +35,6 @@ from sklearn.model_selection import train_test_split
 import data_helper
 from tensorflow.python import debug as tf_debug
 
-
 # E1101:Module 'numpy' has no 'float32' member
 # W0105:W0105:String statement has no effect
 # C0330:Wrong continued indentation
@@ -66,13 +65,11 @@ def load_trained_params(trained_dir):
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
 	base_dir = path + sys.argv[1] +'/'
+	#base_dir = path + 'Base AssetsCurrent/'
 	for f in os.listdir(base_dir):
 		if f.endswith(".pickle"):
 			input_file = base_dir + f
 
-	#input_file = path + sys.argv[1]
-	#input_file = path + 'Base AssetsCurrent/AssetsCurrent.pickle'
-	#input_file = path + 'AssetsCurrent Ver 8/AssetsCurrent.pickle'
 	# try:
 	# 	training_config = path + sys.argv[2]
 	# 	params = json.loads(open(training_config).read())
@@ -205,11 +202,6 @@ def train_cnn_rnn():
 			conf_high_summary = tf.summary.scalar("confidence_high", cnn_rnn.conf_high, collections='confidence_high')
 			logging.warning('conf high summay : {}'.format(conf_high_summary))
 
-			''' PR summaries '''
-			pr_summary_op = tf.summary.merge_all()
-			pr_summary_dir = os.path.join(checkpoint_dir, "summaries", "pr")
-			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, sess.graph)
-
 			''' Train Summaries '''
 			train_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
 			train_summary_dir = os.path.join(checkpoint_dir, "summaries", "train")
@@ -234,8 +226,9 @@ def train_cnn_rnn():
                              cnn_rnn.real_len: real_len(x_batch),}
 				_, step, summaries = sess.run([train_op, global_step, train_summary_op], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
-				_, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
-				pr_summary_writer.add_summary(pr_summaries, step)
+				# sess.run(tf.local_variables_initializer())
+				# _, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
+				# pr_summary_writer.add_summary(pr_summaries, step)
 
 			def dev_step(x_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
@@ -245,9 +238,6 @@ def train_cnn_rnn():
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.real_len: real_len(x_batch),}
 				step, summaries, accuracy, num_correct = sess.run([global_step, dev_summary_op, cnn_rnn.accuracy, cnn_rnn.num_correct], feed_dict)
-				sess.run(tf.local_variables_initializer())
-				_, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
-				pr_summary_writer.add_summary(pr_summaries, step)
 				dev_summary_writer.add_summary(summaries, step)
 				return accuracy, num_correct
 
@@ -258,8 +248,8 @@ def train_cnn_rnn():
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.real_len: real_len(x_batch),}
-				predicts, corr_anws, otpts, confs, n_crt = sess.run([cnn_rnn.predictions, cnn_rnn.currect_ans, cnn_rnn.scores, cnn_rnn.conf, cnn_rnn.num_correct], feed_dict)
-				return predicts, corr_anws, otpts, confs, n_crt
+				predicts, corr_anws, otpts, confs, n_crt, probs = sess.run([cnn_rnn.predictions, cnn_rnn.currect_ans, cnn_rnn.scores, cnn_rnn.conf, cnn_rnn.num_correct, cnn_rnn.probabilities], feed_dict)
+				return predicts, corr_anws, otpts, confs, n_crt, probs
 
 				#print_tensors_in_checkpoint_file(tf.train.latest_checkpoint(checkpoint_dir), tensor_name='', all_tensors=True)
 
@@ -307,10 +297,10 @@ def train_cnn_rnn():
 			#saver.restore(sess, checkpoint_prefix + str(best_at_step) +'.ckpt')
 			test_batches = data_helper.batch_iter(list(zip(x_test, y_test)), params['batch_size'], 1, shuffle=False)
 			total_test_correct = 0
-			predictions, predict_labels, correct_anws, correct_labels, outputs, confidences = [], [], [], [], [], []
+			predictions, predict_labels, correct_anws, correct_labels, outputs, confidences, probs = [], [], [], [], [], [], []
 			for test_batch in test_batches:
 				x_test_batch, y_test_batch = zip(*test_batch)
-				batch_predictions, batch_correct_anws, batch_outputs, batch_confidences, num_test_correct = test_step(x_test_batch, y_test_batch)
+				batch_predictions, batch_correct_anws, batch_outputs, batch_confidences, num_test_correct, batch_probs = test_step(x_test_batch, y_test_batch)
 				total_test_correct += int(num_test_correct)
 				for batch_prediction in batch_predictions:
 					predictions.append(batch_prediction)
@@ -322,13 +312,18 @@ def train_cnn_rnn():
 					outputs.append(batch_output)
 				for batch_confidence in batch_confidences:
 					confidences.append(batch_confidence)
+				for batch_prob in batch_probs:
+					probs.append(batch_prob)
+
+			probs = np.array(probs)
+			y_test = np.array(y_test)
 
 			df_meta = pd.DataFrame(columns=['Predicted', 'Category', 'Confidence', 'Element'])
 			df_meta['Element'] = pd.concat([df['element_name'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
 			#df_meta['element'] = pd.concat([df['element'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
 			df_meta['Predicted'] = predict_labels
 			df_meta['Category'] = correct_labels
-			df_meta['Confidence'] = round(confidences[1]*100,2)
+			df_meta['Confidence'] = round(confidences[1]*100, 2)
 			df_meta['Errors'] = np.where(df_meta['Category'] == df_meta['Predicted'], 'Positive', 'Negetive')
 			np_test_outputs = np.array(outputs)
 			df_meta.to_csv(emb_dir + '/' + foldername +'_metadata.tsv', sep='\t', index=False, line_terminator='\n', quotechar='"', doublequote=True)
@@ -360,6 +355,28 @@ def train_cnn_rnn():
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
 
+	''' PR summaries '''
+	pr_graph = tf.Graph()
+	with pr_graph.as_default():
+		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+		pr_sess = tf.Session(config=session_conf)
+		with pr_sess.as_default():
+			for cat in range(y_train.shape[1]):
+				with tf.name_scope('%s' % labels[cat]):
+					_, update_op = summary_lib.pr_curve_streaming_op('pr_curve',
+																		predictions=probs[:, cat],
+																		labels=tf.cast(y_test[:, cat], tf.bool),
+																		num_thresholds=11,
+																		metrics_collections='pr',
+																		display_name='n - '+ labels[cat])
+			pr_summary_op = tf.summary.merge_all()
+			pr_summary_dir = os.path.join(checkpoint_dir, "summaries", "pr")
+			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, pr_sess.graph)
+			pr_sess.run(tf.local_variables_initializer())
+			pr_sess.run([update_op])
+			pr_summary_writer.add_summary(pr_sess.run(pr_summary_op))
+
+	''' Result summaries accross all runs '''
 	result = '\n'+ foldername + ',' + str(params['documentation']) + ',' + str(params['standard_element']) + ',' + str(params['standard_ngrams']) + ',' + \
 			str(params['custom_elements']) + ',' + str(params['custom_ngrams']) + ',' + str(y_train.shape[1]) + ',' + str(len(x_)) + ',' + str(params['num_epochs']) + ',' + \
 			str(params['batch_size']) + ',' + str(params['dropout_keep_prob']) + ',' +  str(params['embedding_dim']) +',' +  '"'+str(params['filter_sizes'])+'"'+',' +\
@@ -369,6 +386,7 @@ def train_cnn_rnn():
 	fd = open('Result_Summary.csv', 'a')
 	fd.write(result)
 	fd.close()
+
 
 
 if __name__ == '__main__':

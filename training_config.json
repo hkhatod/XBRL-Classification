@@ -10,7 +10,7 @@
     "non_static": true,
     "num_epochs": 1,
     "num_filters": 128,
-    "classify_element":"AssetsCurrent",
+    "classify_element":"Assets",
     "documentation":true,
     "standard_element":true,
     "standard_ngrams":true,

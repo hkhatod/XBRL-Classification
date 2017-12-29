@@ -30,10 +30,11 @@ import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
 from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 from tensorboard import summary as summary_lib
-from text_cnn_rnn import TextCNNRNN
 from sklearn.model_selection import train_test_split
 import data_helper
+from sklearn.metrics import confusion_matrix
 from tensorflow.python import debug as tf_debug
+from text_cnn_rnn import TextCNNRNN
 
 # E1101:Module 'numpy' has no 'float32' member
 # W0105:W0105:String statement has no effect
@@ -61,11 +62,10 @@ def load_trained_params(trained_dir):
 	embedding_mat = np.array(fetched_embedding, dtype=np.float32)
 	return embedding_mat
 
-
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
-	base_dir = path + sys.argv[1] +'/'
-	#base_dir = path + 'Base AssetsCurrent/'
+	#base_dir = path + sys.argv[1] +'/'
+	base_dir = path + 'Base AssetsCurrent/'
 	for f in os.listdir(base_dir):
 		if f.endswith(".pickle"):
 			input_file = base_dir + f
@@ -82,7 +82,9 @@ def train_cnn_rnn():
 
 	directory, file = os.path.split(input_file)
 	foldername = os.path.splitext(file)[0]
-	runname = ' do:' + str(params['dropout_keep_prob']) + ' eb_dm:' + str(params['embedding_dim'])+ ' fl_sz:' + params['filter_sizes']  +' hid_ut:'+ str(params['hidden_unit']) + ' l2_reg:'+ str(params['l2_reg_lambda'])+ ' max_pl_sz:' + str(params['max_pool_size']) + ' ep_num:'+ str(params['num_epochs'])
+	runname = 'do:' + str(params['dropout_keep_prob']) + ' ed:' + str(params['embedding_dim'])+ \
+			 ' fs:' + params['filter_sizes']  +' hu:'+ str(params['hidden_unit']) + ' l2:'+ \
+			 str(params['l2_reg_lambda'])+ ' mxps:' + str(params['max_pool_size']) + ' ep#:'+ str(params['num_epochs'])
 
 	if params['continue_training']:
 		''' Continue training...'''
@@ -161,19 +163,14 @@ def train_cnn_rnn():
 	with graph.as_default():
 		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 		sess = tf.Session(config=session_conf)
-		# sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+		#sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 		with sess.as_default():
-			cnn_rnn = TextCNNRNN(embedding_mat=embedding_mat,
-								 sequence_length=x_train.shape[1],
-                                 num_classes=y_train.shape[1],
-                                 non_static=params['non_static'],
-                                 hidden_unit=params['hidden_unit'],
-                                 max_pool_size=params['max_pool_size'],
+			cnn_rnn = TextCNNRNN(embedding_mat=embedding_mat, sequence_length=x_train.shape[1],
+                                 num_classes=y_train.shape[1], non_static=params['non_static'],
+                                 hidden_unit=params['hidden_unit'], max_pool_size=params['max_pool_size'],
                                  filter_sizes=map(int, params['filter_sizes'].split(",")),
-                                 num_filters=params['num_filters'],
-                                 embedding_size=params['embedding_dim'],
-                                 tx_labels=labels,
-								 l2_reg_lambda=params['l2_reg_lambda']
+                                 num_filters=params['num_filters'], embedding_size=params['embedding_dim'],
+                                 tx_labels=labels, l2_reg_lambda=params['l2_reg_lambda']
 								 )
 			#optimizer = tf.train.AdamOptimizer()
 			global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -200,15 +197,17 @@ def train_cnn_rnn():
 			conf_low_summary = tf.summary.scalar("confidence_low", cnn_rnn.conf_low, collections='confidence_low')
 			conf_summary = tf.summary.scalar("confidence", cnn_rnn.Avg_conf, collections='confidence')
 			conf_high_summary = tf.summary.scalar("confidence_high", cnn_rnn.conf_high, collections='confidence_high')
+			confusion_mat = tf.summary.text("confusion_matrix",cnn_rnn.confusion_matrix)
+			confusion_img = tf.summary.image("confusion_img",cnn_rnn.confusion_image)
 			logging.warning('conf high summay : {}'.format(conf_high_summary))
 
 			''' Train Summaries '''
-			train_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
+			train_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged,confusion_mat,confusion_img])
 			train_summary_dir = os.path.join(checkpoint_dir, "summaries", "train")
 			train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
 			''' Dev summaries '''
-			dev_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
+			dev_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged,confusion_mat, confusion_img])
 			dev_summary_dir = os.path.join(checkpoint_dir, "summaries", "dev")
 			dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
@@ -224,7 +223,7 @@ def train_cnn_rnn():
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.real_len: real_len(x_batch),}
-				_, step, summaries = sess.run([train_op, global_step, train_summary_op], feed_dict)
+				_, step, summaries,_ = sess.run([train_op, global_step, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
 				# sess.run(tf.local_variables_initializer())
 				# _, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
@@ -355,7 +354,7 @@ def train_cnn_rnn():
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
 
-	''' PR summaries '''
+	''' PR summaries and Confusion Matrix '''
 	pr_graph = tf.Graph()
 	with pr_graph.as_default():
 		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -363,18 +362,14 @@ def train_cnn_rnn():
 		with pr_sess.as_default():
 			for cat in range(y_train.shape[1]):
 				with tf.name_scope('%s' % labels[cat]):
-					_, update_op = summary_lib.pr_curve_streaming_op('pr_curve',
-																		predictions=probs[:, cat],
-																		labels=tf.cast(y_test[:, cat], tf.bool),
-																		num_thresholds=11,
-																		metrics_collections='pr',
-																		display_name='n - '+ labels[cat])
+					_, update_op = summary_lib.pr_curve_streaming_op('pr_curve', predictions=probs[:, cat],	labels=tf.cast(y_test[:, cat], tf.bool), num_thresholds=500, metrics_collections='pr')
 			pr_summary_op = tf.summary.merge_all()
 			pr_summary_dir = os.path.join(checkpoint_dir, "summaries", "pr")
 			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, pr_sess.graph)
 			pr_sess.run(tf.local_variables_initializer())
 			pr_sess.run([update_op])
 			pr_summary_writer.add_summary(pr_sess.run(pr_summary_op))
+			pr_summary_writer.close()
 
 	''' Result summaries accross all runs '''
 	result = '\n'+ foldername + ',' + str(params['documentation']) + ',' + str(params['standard_element']) + ',' + str(params['standard_ngrams']) + ',' + \
@@ -386,6 +381,12 @@ def train_cnn_rnn():
 	fd = open('Result_Summary.csv', 'a')
 	fd.write(result)
 	fd.close()
+
+
+
+
+
+
 
 
 

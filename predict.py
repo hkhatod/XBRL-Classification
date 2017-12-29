@@ -213,9 +213,6 @@ def predict_unseen_data():
 					for batch_confidence in batch_confidences:
 						predict_prob.append(batch_confidence)
 
-						
-			
-			
 			
 			# for index, probablity in enumerate(probabilities):
 			# 	predict_prob.append(probablity[predictions[index]])
@@ -271,9 +268,8 @@ def predict_unseen_data():
 					_, update_op = summary_lib.pr_curve_streaming_op('pr_curve',
 																		predictions=probabilities[:, cat],
 																		labels=tf.cast(y_test[:, cat], tf.bool),
-																		num_thresholds=11,
-																		metrics_collections='pr',
-																		display_name='n - '+ labels[cat])
+																		num_thresholds=500,
+																		metrics_collections='pr')
 			pr_summary_op = tf.summary.merge_all()
 			pr_summary_dir = os.path.join(predicted_dir, "summaries", "pr")
 			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, pr_sess.graph)

@@ -83,6 +83,7 @@ def gather_all(batchs, labels=None):
 			label_items.append(labels[batch])
 		return items, label_items
 
+
 def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusion matrix', tensor_name = 'MyFigure/image'):
 	"""
 	This function prints and plots the confusion matrix.
@@ -94,63 +95,65 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusi
 	cm = cm.astype('int')
 	np.set_printoptions(precision=2)
 	###fig, ax = matplotlib.figure.Figure()
-
+	
 	fig = matplotlib.figure.Figure(figsize=(7, 7), dpi=320, facecolor='w', edgecolor='k')
 	ax = fig.add_subplot(1, 1, 1)
 	im = ax.imshow(cm, cmap='Oranges')
 	
 	classes = [re.sub(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ', x) for x in labels]
-	classes = ['\n'.join(wrap(l, 20)) for l in classes]
+	classes = ['\n'.join(wrap(l, 40)) for l in classes]
+
 	tick_marks = np.arange(len(classes))
 
 	ax.set_xlabel('Predicted', fontsize=7)
-	c = ax.set_xticklabels(classes, fontsize=4, ha='center')
 	ax.set_xticks(tick_marks)
+	c = ax.set_xticklabels(classes, fontsize=4, rotation=-90,  ha='center')
 	ax.xaxis.set_label_position('bottom')
 	ax.xaxis.tick_bottom()
 	
 	ax.set_ylabel('True Label', fontsize=7)
-	ax.set_yticklabels(classes, fontsize=4, va ='center')
 	ax.set_yticks(tick_marks)
+	ax.set_yticklabels(classes, fontsize=4, va ='center')
 	ax.yaxis.set_label_position('left')
 	ax.yaxis.tick_left()
 
-	for i, cls_name in enumerate(c):
-		cls_name.set_y(cls_name.get_position()[1] - (i % 2) * 0.075)
-	ax2 = ax.twiny()
-	ax2.set_xlabel('Predicted -B', fontsize=7)
-	ax2.set_xticklabels(classes, fontsize=4, rotation=-90, ha='center')
-	ax2.set_xticks(tick_marks)
-	ax2.xaxis.set_label_position('top')
-	ax2.xaxis.tick_top()
+	# for tn, cls_name in enumerate(c):
+	# 	cls_name.set_y(cls_name.get_position()[1] - (tn % 2) * 0.075)
+
+	# ax2 = ax.twiny()
+	# ax2.set_xlabel('Predicted -B', fontsize=7)
+	# ax2.set_xticks(tick_marks)
+	# ax2.set_xticklabels(classes, fontsize=4, ha='center')
+	# ax2.xaxis.set_label_position('top')
+	# ax2.xaxis.tick_top()
 	
-	ay2 = ax.twinx()
-	ay2.set_ylabel('True Label', fontsize=7)
-	ay2.set_yticklabels(reversed(classes), fontsize=4, va ='center')
-	ay2.set_yticks(tick_marks)
-	ay2.yaxis.set_label_position('right')
-	ay2.yaxis.tick_right()
+	# ay2 = ax.twinx()
+	# ay2.set_ylabel('True Label', fontsize=7)
+	# ay2.set_yticks(tick_marks)
+	# ay2.set_yticklabels(reversed(classes), fontsize=4, va ='center')
+	# ay2.yaxis.set_label_position('right')
+	# ay2.yaxis.tick_right()
 	
 
-	for cls_ind, t in enumerate(ax.xaxis.get_ticklabels()[::1]):
-		if cls_ind % 2 == 0:
-			 t.set_visible(False)
+	# for cls_ind, t in enumerate(ax.xaxis.get_ticklabels()[::1]):
+	# 	if cls_ind % 2 == 0:
+	# 		 t.set_visible(False)
 
-	for cls_ind, t in enumerate(ax2.xaxis.get_ticklabels()[::1]):
-		if cls_ind % 2 != 0:
-			 t.set_visible(False)
+	# for cls_ind, t in enumerate(ax2.xaxis.get_ticklabels()[::1]):
+	# 	if cls_ind % 2 != 0:
+	# 		 t.set_visible(False)
 
-	for cls_ind, t in enumerate(ax.yaxis.get_ticklabels()[::1]):
-		if cls_ind % 2 == 0:
-			 t.set_visible(False)
+	# for cls_ind, t in enumerate(ax.yaxis.get_ticklabels()[::1]):
+	# 	if cls_ind % 2 == 0:
+	# 		 t.set_visible(False)
 
-	for cls_ind, t in enumerate(ay2.yaxis.get_ticklabels()[::1]):
-		if cls_ind % 2 != 0:
-			 t.set_visible(False)
+	# for cls_ind, t in enumerate(ay2.yaxis.get_ticklabels()[::1]):
+	# 	if cls_ind % 2 == 0:
+	# 		 t.set_visible(False)
 	
 	for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
 		ax.text(j, i, format(cm[i, j], 'd') if cm[i,j]!=0 else '.', horizontalalignment="center", fontsize=6, verticalalignment='center', color= "black")
-	fig.tight_layout()
+	fig.set_tight_layout(True)
 	summary = tfplot.figure.to_summary(fig, tag=tensor_name)
 	return summary
 
@@ -297,17 +300,25 @@ def train_cnn_rnn():
 
 			''' Train Summaries '''
 			train_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
-			train_summary_dir = os.path.join(checkpoint_dir, "summaries", "train")
+			train_summary_dir = os.path.join(checkpoint_dir, "s", "train")
 			train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
 			''' Dev summaries '''
 			dev_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
-			dev_summary_dir = os.path.join(checkpoint_dir, "summaries", "dev")
+			dev_summary_dir = os.path.join(checkpoint_dir, "s", "dev")
 			dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
-			''' confusion matrix summaries '''
-			img_d_summary_dir = os.path.join(checkpoint_dir, "summaries", "img")
+			''' confusion matrix summaries for dev set'''
+			img_d_summary_dir = os.path.join(checkpoint_dir, "s","dimg")
 			img_d_summary_writer = tf.summary.FileWriter(img_d_summary_dir, sess.graph)
+
+			# ''' confusion matrix summaries for dev set'''
+			# img_tr_summary_dir = os.path.join(checkpoint_dir, "s","trimg")
+			# img_tr_summary_writer = tf.summary.FileWriter(img_tr_summary_dir, sess.graph)
+
+			''' confusion matrix summaries for test set'''
+			img_summary_dir = os.path.join(checkpoint_dir, "s", "timg")
+			img_summary_writer = tf.summary.FileWriter(img_summary_dir, sess.graph)
 			
 			
 			saver = tf.train.Saver(tf.global_variables())
@@ -323,10 +334,13 @@ def train_cnn_rnn():
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.real_len: real_len(x_batch),}
 				_, step, summaries,_ = sess.run([train_op, global_step, train_summary_op, cnn_rnn.confusion_update], feed_dict)
+				#_, step, predicts, corr_anws, summaries,_ = sess.run([train_op, global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
 				# sess.run(tf.local_variables_initializer())
 				# _, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
 				# pr_summary_writer.add_summary(pr_summaries, step)
+				# return predicts, corr_anws
+			
 
 			def dev_step(x_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
@@ -368,9 +382,13 @@ def train_cnn_rnn():
 			for train_batch in train_batches:
 				x_train_batch, y_train_batch = zip(*train_batch)
 				train_step(x_train_batch, y_train_batch)
+				#batch_predictions, batch_correct_anws = train_step(x_train_batch, y_train_batch)
 				current_step = tf.train.global_step(sess, global_step)
-
-
+				# _, l_t = gather_all(batch_predictions, labels)
+				# _, cl_t = gather_all(batch_correct_anws, labels)
+				# # Compute confusion matrix
+				# img_tr_summary = plot_confusion_matrix(cl_t, l_t, labels, tensor_name='train/cm')
+				# img_tr_summary_writer.add_summary(img_tr_summary, current_step)
 
 				''' Evaluate the model with x_dev and y_dev '''
 				if current_step % params['evaluate_every'] == 0:
@@ -431,21 +449,6 @@ def train_cnn_rnn():
 				confidences = confidences + gather_all(batch_confidences)
 				probs = probs + gather_all(batch_probs)
 
-
-				
-				# for batch_prediction in batch_predictions:
-				# 	predictions.append(batch_prediction)
-				# 	predict_labels.append(labels[batch_prediction])
-				# for batch_correct_anw in batch_correct_anws:
-				# 	correct_anws.append(batch_correct_anw)
-				# 	correct_labels.append(labels[batch_correct_anw])
-				# for batch_output in batch_outputs:
-				# 	outputs.append(batch_output)
-				# for batch_confidence in batch_confidences:
-				# 	confidences.append(batch_confidence)
-				# for batch_prob in batch_probs:
-				# 	probs.append(batch_prob)
-
 			probs = np.array(probs)
 			y_test = np.array(y_test)
 
@@ -460,10 +463,7 @@ def train_cnn_rnn():
 			df_meta.to_csv(emb_dir + '/' + foldername +'_metadata.tsv', sep='\t', index=False, line_terminator='\n', quotechar='"', doublequote=True)
 			logging.critical('Accuracy on test set: {}'.format(float(total_test_correct) / len(y_test)))
 			df_meta.to_pickle(emb_dir + '/' + foldername +'_metadata.pickle', compression='gzip')
-			# session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-			# sess = tf.Session(config=session_conf)
 			output_var = tf.Variable(np_test_outputs, name=foldername + 'predict_viz')
-			#saver_embed = tf.train.Saver([output_var])
 			sess.run(output_var.initializer)
 
 			final_embed_matrix = sess.run(cnn_rnn.emb_var)
@@ -486,6 +486,13 @@ def train_cnn_rnn():
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
 
+			# Compute confusion matrix
+			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm')
+			img_summary_writer.add_summary(img_summary)
+			img_summary_writer.close()
+
+
+
 	''' PR summaries and Confusion Matrix '''
 	pr_graph = tf.Graph()
 	with pr_graph.as_default():
@@ -496,20 +503,13 @@ def train_cnn_rnn():
 				with tf.name_scope('%s' % labels[cat]):
 					_, update_op = summary_lib.pr_curve_streaming_op('pr_curve', predictions=probs[:, cat],	labels=tf.cast(y_test[:, cat], tf.bool), num_thresholds=500, metrics_collections='pr')
 			pr_summary_op = tf.summary.merge_all()
-			pr_summary_dir = os.path.join(checkpoint_dir, "summaries", "pr")
+			pr_summary_dir = os.path.join(checkpoint_dir, "s", "pr")
 			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, pr_sess.graph)
 			pr_sess.run(tf.local_variables_initializer())
 			pr_sess.run([update_op])
 			pr_summary_writer.add_summary(pr_sess.run(pr_summary_op))
 			pr_summary_writer.close()
 
-			# Compute confusion matrix
-			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm')
-			#img_summary_op = tf.summary.merge([img_summary])
-			img_summary_dir = os.path.join(checkpoint_dir, "summaries", "img")
-			img_summary_writer = tf.summary.FileWriter(img_summary_dir, pr_sess.graph)
-			img_summary_writer.add_summary(img_summary)
-			img_summary_writer.close()
 
 
 

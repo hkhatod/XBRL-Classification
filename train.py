@@ -13,13 +13,14 @@
 #pylint: disable=
 #pylint: disable=
 
-''' 
- 
-Run : 
+'''
+
+Run :
 python3 ./code/train.py 'small_test/AssetsCurrent.pickle'
 '''
 
 import os
+import io
 import sys
 import json
 import pickle
@@ -31,11 +32,18 @@ from tensorflow.contrib.tensorboard.plugins import projector
 from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 from tensorboard import summary as summary_lib
 from sklearn.model_selection import train_test_split
-import data_helper
 from sklearn.metrics import confusion_matrix
+import itertools
 from tensorflow.python import debug as tf_debug
+from textwrap import wrap
+import tfplot
+from PIL import Image
+import tfplot
+import matplotlib
+import re
+#import matplotlib.pyplot as plt
 from text_cnn_rnn import TextCNNRNN
-
+import data_helper
 # E1101:Module 'numpy' has no 'float32' member
 # W0105:W0105:String statement has no effect
 # C0330:Wrong continued indentation
@@ -62,10 +70,96 @@ def load_trained_params(trained_dir):
 	embedding_mat = np.array(fetched_embedding, dtype=np.float32)
 	return embedding_mat
 
+def gather_all(batchs, labels=None):
+	items = []
+	label_items = []
+	if labels is None:
+		for batch in batchs:
+			items.append(batch)
+		return items
+	else:
+		for batch in batchs:
+			items.append(batch)
+			label_items.append(labels[batch])
+		return items, label_items
+
+def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusion matrix', tensor_name = 'MyFigure/image'):
+	"""
+	This function prints and plots the confusion matrix.
+	Normalization can be applied by setting `normalize=True`.
+	"""
+	cm = confusion_matrix(correct_labels, predict_labels, labels=labels)
+	cm = cm.astype('float')*10 / cm.sum(axis=1)[:, np.newaxis]
+	cm = np.nan_to_num(cm, copy=True)
+	cm = cm.astype('int')
+	np.set_printoptions(precision=2)
+	###fig, ax = matplotlib.figure.Figure()
+
+	fig = matplotlib.figure.Figure(figsize=(7, 7), dpi=320, facecolor='w', edgecolor='k')
+	ax = fig.add_subplot(1, 1, 1)
+	im = ax.imshow(cm, cmap='Oranges')
+	
+	classes = [re.sub(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ', x) for x in labels]
+	classes = ['\n'.join(wrap(l, 20)) for l in classes]
+	tick_marks = np.arange(len(classes))
+
+	ax.set_xlabel('Predicted', fontsize=7)
+	c = ax.set_xticklabels(classes, fontsize=4, ha='center')
+	ax.set_xticks(tick_marks)
+	ax.xaxis.set_label_position('bottom')
+	ax.xaxis.tick_bottom()
+	
+	ax.set_ylabel('True Label', fontsize=7)
+	ax.set_yticklabels(classes, fontsize=4, va ='center')
+	ax.set_yticks(tick_marks)
+	ax.yaxis.set_label_position('left')
+	ax.yaxis.tick_left()
+
+	for i, cls_name in enumerate(c):
+		cls_name.set_y(cls_name.get_position()[1] - (i % 2) * 0.075)
+	ax2 = ax.twiny()
+	ax2.set_xlabel('Predicted -B', fontsize=7)
+	ax2.set_xticklabels(classes, fontsize=4, rotation=-90, ha='center')
+	ax2.set_xticks(tick_marks)
+	ax2.xaxis.set_label_position('top')
+	ax2.xaxis.tick_top()
+	
+	ay2 = ax.twinx()
+	ay2.set_ylabel('True Label', fontsize=7)
+	ay2.set_yticklabels(reversed(classes), fontsize=4, va ='center')
+	ay2.set_yticks(tick_marks)
+	ay2.yaxis.set_label_position('right')
+	ay2.yaxis.tick_right()
+	
+
+	for cls_ind, t in enumerate(ax.xaxis.get_ticklabels()[::1]):
+		if cls_ind % 2 == 0:
+			 t.set_visible(False)
+
+	for cls_ind, t in enumerate(ax2.xaxis.get_ticklabels()[::1]):
+		if cls_ind % 2 != 0:
+			 t.set_visible(False)
+
+	for cls_ind, t in enumerate(ax.yaxis.get_ticklabels()[::1]):
+		if cls_ind % 2 == 0:
+			 t.set_visible(False)
+
+	for cls_ind, t in enumerate(ay2.yaxis.get_ticklabels()[::1]):
+		if cls_ind % 2 != 0:
+			 t.set_visible(False)
+	
+	for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+		ax.text(j, i, format(cm[i, j], 'd') if cm[i,j]!=0 else '.', horizontalalignment="center", fontsize=6, verticalalignment='center', color= "black")
+	fig.tight_layout()
+	summary = tfplot.figure.to_summary(fig, tag=tensor_name)
+	return summary
+
+
+
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
-	#base_dir = path + sys.argv[1] +'/'
-	base_dir = path + 'Base AssetsCurrent/'
+	base_dir = path + sys.argv[1] +'/'
+	#base_dir = path + 'Base AssetsCurrent/'
 	for f in os.listdir(base_dir):
 		if f.endswith(".pickle"):
 			input_file = base_dir + f
@@ -138,7 +232,7 @@ def train_cnn_rnn():
 	with open(os.path.dirname(os.path.dirname(checkpoint_dir)) + '/trained_parameters.json', 'w') as outfile:
 		json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
 	'''
-	use folder name as subscript instead of 'model' 
+	use folder name as subscript instead of 'model'
 	'''
 
 	'''
@@ -151,9 +245,9 @@ def train_cnn_rnn():
 	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/labels.json', 'w') as outfile:
 		json.dump(labels, outfile, indent=4, ensure_ascii=False)
 	'''
-	Emdeddings labels not trained 
+	Emdeddings labels not trained
 	'''
-	
+
 	lst = zip(vocabulary_inv, vocabulary_count)
 	tsv_df = pd.DataFrame.from_records(lst, columns=['Label', 'Count'])
 	tsv_df.to_csv(emb_dir + '/metadata.tsv', sep='\t', columns=['Label', 'Count'], index=False)
@@ -197,20 +291,25 @@ def train_cnn_rnn():
 			conf_low_summary = tf.summary.scalar("confidence_low", cnn_rnn.conf_low, collections='confidence_low')
 			conf_summary = tf.summary.scalar("confidence", cnn_rnn.Avg_conf, collections='confidence')
 			conf_high_summary = tf.summary.scalar("confidence_high", cnn_rnn.conf_high, collections='confidence_high')
-			confusion_mat = tf.summary.text("confusion_matrix",cnn_rnn.confusion_matrix)
-			confusion_img = tf.summary.image("confusion_img",cnn_rnn.confusion_image)
+			# confusion_mat = tf.summary.text("confusion_matrix",cnn_rnn.confusion_matrix)
+			# confusion_img = tf.summary.image("confusion_img",cnn_rnn.confusion_image)
 			logging.warning('conf high summay : {}'.format(conf_high_summary))
 
 			''' Train Summaries '''
-			train_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged,confusion_mat,confusion_img])
+			train_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
 			train_summary_dir = os.path.join(checkpoint_dir, "summaries", "train")
 			train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
 			''' Dev summaries '''
-			dev_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged,confusion_mat, confusion_img])
+			dev_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
 			dev_summary_dir = os.path.join(checkpoint_dir, "summaries", "dev")
 			dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
+			''' confusion matrix summaries '''
+			img_d_summary_dir = os.path.join(checkpoint_dir, "summaries", "img")
+			img_d_summary_writer = tf.summary.FileWriter(img_d_summary_dir, sess.graph)
+			
+			
 			saver = tf.train.Saver(tf.global_variables())
 
 			def real_len(batches):
@@ -236,9 +335,9 @@ def train_cnn_rnn():
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.real_len: real_len(x_batch),}
-				step, summaries, accuracy, num_correct = sess.run([global_step, dev_summary_op, cnn_rnn.accuracy, cnn_rnn.num_correct], feed_dict)
+				step,predicts, corr_anws, summaries, accuracy, num_correct = sess.run([global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, dev_summary_op, cnn_rnn.accuracy, cnn_rnn.num_correct], feed_dict)
 				dev_summary_writer.add_summary(summaries, step)
-				return accuracy, num_correct
+				return accuracy, num_correct,predicts, corr_anws
 
 			def test_step(x_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
@@ -271,14 +370,32 @@ def train_cnn_rnn():
 				train_step(x_train_batch, y_train_batch)
 				current_step = tf.train.global_step(sess, global_step)
 
+
+
 				''' Evaluate the model with x_dev and y_dev '''
 				if current_step % params['evaluate_every'] == 0:
 					dev_batches = data_helper.batch_iter(list(zip(x_dev, y_dev)), params['batch_size'], 1)
 					total_dev_correct = 0
+					predictions, predict_labels, correct_anws, correct_labels = [],[],[],[]
 					for dev_batch in dev_batches:
 						x_dev_batch, y_dev_batch = zip(*dev_batch)
-						acc, num_dev_correct = dev_step(x_dev_batch, y_dev_batch)
+						acc, num_dev_correct, batch_predictions, batch_correct_anws = dev_step(x_dev_batch, y_dev_batch)
 						total_dev_correct += num_dev_correct
+						p, l = gather_all(batch_predictions, labels)
+						predictions = predictions + p
+						predict_labels = predict_labels +l
+						
+						c, l = gather_all(batch_correct_anws, labels)
+						correct_anws = correct_anws + c
+						correct_labels = correct_labels + l
+						
+					# Compute confusion matrix
+					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm')
+					img_d_summary_writer.add_summary(img_d_summary, current_step)
+					
+
+				
+				
 					accuracy = float(total_dev_correct) / len(y_dev)
 					logging.info('Calculated - Accuracy on dev set: {}'.format(accuracy))
 					logging.info('Model-Accuracy on dev set: {}'.format(acc))
@@ -301,18 +418,33 @@ def train_cnn_rnn():
 				x_test_batch, y_test_batch = zip(*test_batch)
 				batch_predictions, batch_correct_anws, batch_outputs, batch_confidences, num_test_correct, batch_probs = test_step(x_test_batch, y_test_batch)
 				total_test_correct += int(num_test_correct)
-				for batch_prediction in batch_predictions:
-					predictions.append(batch_prediction)
-					predict_labels.append(labels[batch_prediction])
-				for batch_correct_anw in batch_correct_anws:
-					correct_anws.append(batch_correct_anw)
-					correct_labels.append(labels[batch_correct_anw])
-				for batch_output in batch_outputs:
-					outputs.append(batch_output)
-				for batch_confidence in batch_confidences:
-					confidences.append(batch_confidence)
-				for batch_prob in batch_probs:
-					probs.append(batch_prob)
+				
+				p, l = gather_all(batch_predictions, labels)
+				predictions = predictions + p
+				predict_labels = predict_labels +l
+				
+				c, l = gather_all(batch_correct_anws, labels)
+				correct_anws = correct_anws + c
+				correct_labels = correct_labels + l
+
+				outputs = outputs + gather_all(batch_outputs)
+				confidences = confidences + gather_all(batch_confidences)
+				probs = probs + gather_all(batch_probs)
+
+
+				
+				# for batch_prediction in batch_predictions:
+				# 	predictions.append(batch_prediction)
+				# 	predict_labels.append(labels[batch_prediction])
+				# for batch_correct_anw in batch_correct_anws:
+				# 	correct_anws.append(batch_correct_anw)
+				# 	correct_labels.append(labels[batch_correct_anw])
+				# for batch_output in batch_outputs:
+				# 	outputs.append(batch_output)
+				# for batch_confidence in batch_confidences:
+				# 	confidences.append(batch_confidence)
+				# for batch_prob in batch_probs:
+				# 	probs.append(batch_prob)
 
 			probs = np.array(probs)
 			y_test = np.array(y_test)
@@ -370,6 +502,17 @@ def train_cnn_rnn():
 			pr_sess.run([update_op])
 			pr_summary_writer.add_summary(pr_sess.run(pr_summary_op))
 			pr_summary_writer.close()
+
+			# Compute confusion matrix
+			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm')
+			#img_summary_op = tf.summary.merge([img_summary])
+			img_summary_dir = os.path.join(checkpoint_dir, "summaries", "img")
+			img_summary_writer = tf.summary.FileWriter(img_summary_dir, pr_sess.graph)
+			img_summary_writer.add_summary(img_summary)
+			img_summary_writer.close()
+
+
+
 
 	''' Result summaries accross all runs '''
 	result = '\n'+ foldername + ',' + str(params['documentation']) + ',' + str(params['standard_element']) + ',' + str(params['standard_ngrams']) + ',' + \

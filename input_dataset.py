@@ -3265,6 +3265,7 @@ sfp_category['StockholdersEquity'] = ("StockholdersEquity", "PreferredStockValue
 
 
 soi_category
+sfp_category['soi'] = ("sfp", "Assets", "Liabilities", "StockholdersEquity")
 soi_category['EarningsPerShareBasic'] = ("EarningsPerShareBasic", "IncomeLossFromContinuingOperationsPerBasicShare", "IncomeLossFromDiscontinuedOperationsNetOfTaxPerBasicShare")
 soi_category['EarningsPerShareBasic'] = ("EarningsPerShareBasic", "IncomeLossFromContinuingOperationsPerBasicShare", "IncomeLossFromDiscontinuedOperationsNetOfTaxPerBasicShare")
 soi_category['IncomeLossFromDiscontinuedOperationsNetOfTaxPerBasicShare'] = ("IncomeLossFromDiscontinuedOperationsNetOfTaxPerBasicShare", "DiscontinuedOperationIncomeLossFromDiscontinuedOperationNetOfTaxPerBasicShare", "DiscontinuedOperationGainLossOnDisposalOfDiscontinuedOperationNetOfTaxPerBasicShare")

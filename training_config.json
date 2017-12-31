@@ -13,9 +13,10 @@
     "classify_element":"Assets",
     "documentation":true,
     "standard_element":true,
-    "standard_ngrams":true,
-    "custom_elements":false,
+    "standard_ngrams":false,
+    "custom_elements":true,
     "custom_ngrams":false,
+    "custom_documentation":true,
     "continue_training": false,
     "folder_suffix":""
 }

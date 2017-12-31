@@ -28,8 +28,22 @@ def clean(s):
     matches = datefinder.find_dates(s,source=True,index=True)
     for match in matches:
         s = s.replace(match[1]," @@@ ") # Replace all dates with "@@@"
-    s = re.sub(r"19|20\d{2}"," @@@ ",s,0) # Replace all years without full date with "@@@""
-    s = re.sub(r"\d{6}|\d{5}|\d{4}|\d{3}|\d{2}|\d{1}"," ### ",s) # Replace all remaining numbers with  "###"
+        s = re.sub(r"19|20\d{2}"," @@@ ",s,0) # Replace all years without full date with "@@@""
+        s = re.sub(r"\d{6}|\d{5}|\d{4}|\d{3}|\d{2}|\d{1}"," ### ",s) # Replace all remaining numbers with  "###"
+        s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
+        s = re.sub(r" : ", ":", s)
+        s = re.sub(r"\'s", " \'s", s)
+        s = re.sub(r"\'ve", " \'ve", s)
+        s = re.sub(r"n\'t", " n\'t", s)
+        s = re.sub(r"\'re", " \'re", s)
+        s = re.sub(r"\'d", " \'d", s)
+        s = re.sub(r"\'ll", " \'ll", s)
+        s = re.sub(r",", " , ", s)
+        s = re.sub(r"!", " ! ", s)
+        s = re.sub(r"\(", " \( ", s)
+        s = re.sub(r"\)", " \) ", s)
+        s = re.sub(r"\?", " \? ", s)
+        s = re.sub(r"\s{2,}", " ", s)
 
     return(s)
 
@@ -74,7 +88,7 @@ def tidy_split(df, column, sep='|', keep=False):
 
 def main():
     path = './training/pickles/standard and documentation/'
-    cleaned_path = path +'documentation/' + 'cleaned_docs/'
+    cleaned_path = path  + 'cleaned_docs/'
     files = [f for f in listdir(path+'documentation/') if isfile(join(path+'documentation/', f))]
     for file in files:
         if file.endswith('.pickle'):
@@ -83,13 +97,14 @@ def main():
             else:
                 doc = pd.read_pickle(path+'documentation/'+file,compression='gzip')
                 doc['element'] = doc['element'].apply(clean)
-                doc = tidy_split(doc,'element',sep='.')
+                #doc = tidy_split(doc,'element',sep='.')
                 """
                 Following line removes all rows of from the 
                 document that has more than 200 charaters ~40 words.
                 """
-                doc = doc[doc['element'].str.len() < 200].reset_index() 
+                #doc = doc[doc['element'].str.len() < 200].reset_index()  #take full sentences for 
                 doc.to_csv(cleaned_path + os.path.splitext(file)[0]+'.csv') 
+                doc.to_pickle(cleaned_path + os.path.splitext(file)[0]+'.pickle', compression='gzip') 
                 logging.warning('Cleaned ' + file + '.')
                 del doc
 

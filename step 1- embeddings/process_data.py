@@ -16,7 +16,7 @@ import utils
 # Parameters for downloading data
 DOWNLOAD_URL = 'http://mattmahoney.net/dc/'
 EXPECTED_BYTES = 31344016
-DATA_FOLDER = 'data/'
+DATA_FOLDER = './code/data/'
 FILE_NAME = 'text8.zip'
 
 def download(file_name, expected_bytes):

@@ -149,9 +149,28 @@ def main():
                     gc.collect()
                     logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
                 else:
-                    logging.warning(combi_file + ' does not exist.')
+                    logging.warning(cust_file + ' does not exist.')
 
-           
+
+            if params['custom_documentation']:
+                cust_file = path + 'custom_documentation/'+ (data['element']) +'.pickle'
+                cust_data = pd.DataFrame(columns=['category', 'element'])
+                if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
+                    df_ce = pd.read_pickle(cust_file, compression='gzip')
+                    cust_data['element'] = df_ce['element']
+                    if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
+                        cust_data['category'] = data['element']
+                    else:
+                        cust_data['category'] = data['category']
+                        cust_data['element_name'] = data['element'] 
+                    fulldataset = pd.concat([fulldataset, cust_data], ignore_index=True)
+                    del df_ce
+                    del cust_data
+                    gc.collect()
+                    logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
+                else:
+                    logging.warning(cust_file + ' does not exist.')
+
             if params['custom_ngrams']:
                 cust_combi_file = path + 'custom_element_combination/'+ (data['element']) +'.pickle'
                 cust_combi_data = pd.DataFrame(columns=['category', 'element'])

@@ -84,15 +84,28 @@ def gather_all(batchs, labels=None):
 		return items, label_items
 
 
-def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusion matrix', tensor_name = 'MyFigure/image'):
-	"""
-	This function prints and plots the confusion matrix.
-	Normalization can be applied by setting `normalize=True`.
-	"""
+def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusion matrix', tensor_name = 'MyFigure/image', normalize=True):
+	''' 
+    Parameters:
+        correct_labels                  : These are your true classification categories.
+        predict_labels                  : These are you predicted classification categories
+        labels                          : This is a lit of labels which will be used to display the axix labels
+        title='Confusion matrix'        : Title for your matrix
+        tensor_name = 'MyFigure/image'  : Name for the output summay tensor
+
+    Returns:
+        summary: TensorFlow summary 
+
+    Other itema to note:
+        - Depending on the number of category and the data , you may have to modify the figzie, font sizes etc. 
+        - Currently, some of the ticks dont line up due to rotations.
+    '''
 	cm = confusion_matrix(correct_labels, predict_labels, labels=labels)
-	cm = cm.astype('float')*10 / cm.sum(axis=1)[:, np.newaxis]
-	cm = np.nan_to_num(cm, copy=True)
-	cm = cm.astype('int')
+	if normalize:
+		cm = cm.astype('float')*10 / cm.sum(axis=1)[:, np.newaxis]
+		cm = np.nan_to_num(cm, copy=True)
+		cm = cm.astype('int')
+	
 	np.set_printoptions(precision=2)
 	###fig, ax = matplotlib.figure.Figure()
 	
@@ -105,54 +118,20 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusi
 
 	tick_marks = np.arange(len(classes))
 
-	ax.set_xlabel('Predicted', fontsize=7)
+	ax.set_xlabel('Predicted', fontsize=12 if len(classes) < 10 else 4)
 	ax.set_xticks(tick_marks)
-	c = ax.set_xticklabels(classes, fontsize=4, rotation=-90,  ha='center')
+	c = ax.set_xticklabels(classes, fontsize=8 if len(classes) < 10 else 4, rotation=-90,  ha='center')
 	ax.xaxis.set_label_position('bottom')
 	ax.xaxis.tick_bottom()
 	
-	ax.set_ylabel('True Label', fontsize=7)
+	ax.set_ylabel('True Label', fontsize=12 if len(classes) < 10 else 7)
 	ax.set_yticks(tick_marks)
-	ax.set_yticklabels(classes, fontsize=4, va ='center')
+	ax.set_yticklabels(classes, fontsize=8 if len(classes) < 10 else 4, va ='center')
 	ax.yaxis.set_label_position('left')
 	ax.yaxis.tick_left()
 
-	# for tn, cls_name in enumerate(c):
-	# 	cls_name.set_y(cls_name.get_position()[1] - (tn % 2) * 0.075)
-
-	# ax2 = ax.twiny()
-	# ax2.set_xlabel('Predicted -B', fontsize=7)
-	# ax2.set_xticks(tick_marks)
-	# ax2.set_xticklabels(classes, fontsize=4, ha='center')
-	# ax2.xaxis.set_label_position('top')
-	# ax2.xaxis.tick_top()
-	
-	# ay2 = ax.twinx()
-	# ay2.set_ylabel('True Label', fontsize=7)
-	# ay2.set_yticks(tick_marks)
-	# ay2.set_yticklabels(reversed(classes), fontsize=4, va ='center')
-	# ay2.yaxis.set_label_position('right')
-	# ay2.yaxis.tick_right()
-	
-
-	# for cls_ind, t in enumerate(ax.xaxis.get_ticklabels()[::1]):
-	# 	if cls_ind % 2 == 0:
-	# 		 t.set_visible(False)
-
-	# for cls_ind, t in enumerate(ax2.xaxis.get_ticklabels()[::1]):
-	# 	if cls_ind % 2 != 0:
-	# 		 t.set_visible(False)
-
-	# for cls_ind, t in enumerate(ax.yaxis.get_ticklabels()[::1]):
-	# 	if cls_ind % 2 == 0:
-	# 		 t.set_visible(False)
-
-	# for cls_ind, t in enumerate(ay2.yaxis.get_ticklabels()[::1]):
-	# 	if cls_ind % 2 == 0:
-	# 		 t.set_visible(False)
-	
 	for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-		ax.text(j, i, format(cm[i, j], 'd') if cm[i,j]!=0 else '.', horizontalalignment="center", fontsize=6, verticalalignment='center', color= "black")
+		ax.text(j, i, format(cm[i, j], 'd') if cm[i,j]!=0 else '.', horizontalalignment="center", fontsize=10 if len(classes) < 10 else 6 , verticalalignment='center', color= "black")
 	fig.set_tight_layout(True)
 	summary = tfplot.figure.to_summary(fig, tag=tensor_name)
 	return summary
@@ -408,7 +387,7 @@ def train_cnn_rnn():
 						correct_labels = correct_labels + l
 						
 					# Compute confusion matrix
-					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm')
+					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=True)
 					img_d_summary_writer.add_summary(img_d_summary, current_step)
 					
 
@@ -487,7 +466,7 @@ def train_cnn_rnn():
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
 
 			# Compute confusion matrix
-			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm')
+			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm', normalize=False)
 			img_summary_writer.add_summary(img_summary)
 			img_summary_writer.close()
 

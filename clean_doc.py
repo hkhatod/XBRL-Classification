@@ -24,29 +24,30 @@ def clean(s):
      s - cleaned string where all dollar amounts, dates, and numbers 
      are conversted to $$$, @@@, and ### respectively.
     """
+    s = re.sub(r"[^A-Za-z0-9:(),!?$\'\`]", " ", s)
     s = re.sub(r"[\$]{1}[\d,]+\.?\d{0,2}"," $$$ ",s,0)  # Replace all dollar amounts with "$$$"
     matches = datefinder.find_dates(s,source=True,index=True)
     for match in matches:
         s = s.replace(match[1]," @@@ ") # Replace all dates with "@@@"
         s = re.sub(r"19|20\d{2}"," @@@ ",s,0) # Replace all years without full date with "@@@""
-        s = re.sub(r"\d{6}|\d{5}|\d{4}|\d{3}|\d{2}|\d{1}"," ### ",s) # Replace all remaining numbers with  "###"
-        s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
-        s = re.sub(r" : ", ":", s)
-        s = re.sub(r"\'s", " \'s", s)
-        s = re.sub(r"\'ve", " \'ve", s)
-        s = re.sub(r"n\'t", " n\'t", s)
-        s = re.sub(r"\'re", " \'re", s)
-        s = re.sub(r"\'d", " \'d", s)
-        s = re.sub(r"\'ll", " \'ll", s)
-        s = re.sub(r",", " , ", s)
-        s = re.sub(r"!", " ! ", s)
-        s = re.sub(r"\(", " \( ", s)
-        s = re.sub(r"\)", " \) ", s)
-        s = re.sub(r"\?", " \? ", s)
-        s = re.sub(r"\s{2,}", " ", s)
+    s = re.sub(r"\d{6}|\d{5}|\d{4}|\d{3}|\d{2}|\d{1}"," ### ",s) # Replace all remaining numbers with  "###"
+    s = re.sub(r"[^A-Za-z0-9:(),!?$#@\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
+    s = re.sub(r" : ", ":", s)
+    s = re.sub(r"\'s", " \'s", s)
+    s = re.sub(r"\'ve", " \'ve", s)
+    s = re.sub(r"n\'t", " n\'t", s)
+    s = re.sub(r"\'re", " \'re", s)
+    s = re.sub(r"\'d", " \'d", s)
+    s = re.sub(r"\'ll", " \'ll", s)
+    s = re.sub(r",", " , ", s)
+    s = re.sub(r"!", " ! ", s)
+    s = re.sub(r"\(", " \( ", s)
+    s = re.sub(r"\)", " \) ", s)
+    s = re.sub(r"\?", " \? ", s)
+    s = re.sub(r"\s{2,}", " ", s)
 
     return(s)
-exitr
+
 def tidy_split(df, column, sep='|', keep=False):
     """
     Split the values of a column and expand so the new DataFrame has one split

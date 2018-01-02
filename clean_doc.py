@@ -46,7 +46,7 @@ def clean(s):
         s = re.sub(r"\s{2,}", " ", s)
 
     return(s)
-
+exitr
 def tidy_split(df, column, sep='|', keep=False):
     """
     Split the values of a column and expand so the new DataFrame has one split

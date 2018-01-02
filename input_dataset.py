@@ -3264,8 +3264,8 @@ sfp_category['CustomerAdvancesOrDepositsNoncurrent'] = ("CustomerAdvancesOrDepos
 sfp_category['StockholdersEquity'] = ("StockholdersEquity", "PreferredStockValue", "PreferredStockSharesSubscribedButUnissuedSubscriptionsReceivable", "CommonStockValue", "TreasuryStockValue", "CommonStockHeldBySubsidiary", "CommonStockShareSubscribedButUnissuedSubscriptionsReceivable", "CommonStockSharesSubscriptions", "AdditionalPaidInCapital", "TreasuryStockDeferredEmployeeStockOwnershipPlan", "DeferredCompensationEquity", "AccumulatedOtherComprehensiveIncomeLossNetOfTax", "RetainedEarningsAccumulatedDeficit", "UnearnedESOPShares", "OtherAdditionalCapital", "ReceivableFromOfficersAndDirectorsForIssuanceOfCapitalStock", "ReceivableFromShareholdersOrAffiliatesForIssuanceOfCapitalStock", "WarrantsAndRightsOutstanding", "StockholdersEquityNoteSubscriptionsReceivable", "StockholdersEquityAttributableToParentNotAllowableForNetCapital", "StockholdersEquityQualifiedForNetCapital")
 
 
-soi_category
-sfp_category['soi'] = ("sfp", "Assets", "Liabilities", "StockholdersEquity")
+soi_category['soi'] = ("soi", "EarningsPerShareBasic", "EarningsPerShareBasicAndDiluted", "EarningsPerShareDiluted", "NetIncomeLossAvailableToCommonStockholdersDiluted","NetIncomeLossNetOfTaxPerOutstandingLimitedPartnershipUnitDiluted","NetIncomeLossPerOutstandingGeneralPartnershipUnitNetOfTax","NetIncomeLossPerOutstandingLimitedPartnershipAndGeneralPartnershipUnitBasic", "NetIncomeLossPerOutstandingLimitedPartnershipUnitBasicNetOfTax",  "WeightedAverageNumberOfDilutedSharesOutstanding")
+
 soi_category['EarningsPerShareBasic'] = ("EarningsPerShareBasic", "IncomeLossFromContinuingOperationsPerBasicShare", "IncomeLossFromDiscontinuedOperationsNetOfTaxPerBasicShare")
 soi_category['EarningsPerShareBasic'] = ("EarningsPerShareBasic", "IncomeLossFromContinuingOperationsPerBasicShare", "IncomeLossFromDiscontinuedOperationsNetOfTaxPerBasicShare")
 soi_category['IncomeLossFromDiscontinuedOperationsNetOfTaxPerBasicShare'] = ("IncomeLossFromDiscontinuedOperationsNetOfTaxPerBasicShare", "DiscontinuedOperationIncomeLossFromDiscontinuedOperationNetOfTaxPerBasicShare", "DiscontinuedOperationGainLossOnDisposalOfDiscontinuedOperationNetOfTaxPerBasicShare")
@@ -3274,6 +3274,8 @@ soi_category['EarningsPerShareDiluted'] = ("EarningsPerShareDiluted", "IncomeLos
 soi_category['EarningsPerShareDiluted'] = ("EarningsPerShareDiluted", "IncomeLossFromContinuingOperationsPerDilutedShare", "IncomeLossFromDiscontinuedOperationsNetOfTaxPerDilutedShare")
 soi_category['IncomeLossFromDiscontinuedOperationsNetOfTaxPerDilutedShare'] = ("IncomeLossFromDiscontinuedOperationsNetOfTaxPerDilutedShare", "DiscontinuedOperationIncomeLossFromDiscontinuedOperationNetOfTaxPerDilutedShare", "DiscontinuedOperationGainLossOnDisposalOfDiscontinuedOperationNetOfTaxPerDilutedShare")
 soi_category['IncomeLossFromDiscontinuedOperationsNetOfTaxPerDilutedShare'] = ("IncomeLossFromDiscontinuedOperationsNetOfTaxPerDilutedShare", "DiscontinuedOperationIncomeLossFromDiscontinuedOperationNetOfTaxPerDilutedShare", "DiscontinuedOperationGainLossOnDisposalOfDiscontinuedOperationNetOfTaxPerDilutedShare")
+
+
 soi_category['NetIncomeLossAvailableToCommonStockholdersDiluted'] = ("NetIncomeLossAvailableToCommonStockholdersDiluted", "NetIncomeLossAvailableToCommonStockholdersBasic", "InterestOnConvertibleDebtNetOfTax", "ConvertiblePreferredDividendsNetOfTax", "DilutiveSecurities")
 soi_category['NetIncomeLossAvailableToCommonStockholdersBasic'] = ("NetIncomeLossAvailableToCommonStockholdersBasic", "NetIncomeLoss", "PreferredStockDividendsAndOtherAdjustments", "UndistributedEarningsLossAllocatedToParticipatingSecuritiesBasic")
 soi_category['NetIncomeLoss'] = ("NetIncomeLoss", "ProfitLoss", "NetIncomeLossAttributableToNoncontrollingInterest")

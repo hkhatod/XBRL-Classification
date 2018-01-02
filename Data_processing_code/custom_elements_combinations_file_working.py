@@ -32,7 +32,7 @@ def create_combinations(file):
     custom = pd.read_pickle(initial_path+file, compression='gzip')
     custom = custom.drop_duplicates(subset=['category', 'element'])
     custom['element'] = custom['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
-    total_rows = len(custom.index)
+    total_rows = len(custom.index)`
     logging.warning('Processing element : ' + file + 'Number of rows to combine: '+ str(total_rows))
     # if total_rows > cores:
     #     partitions = math.floor(total_rows/cores)

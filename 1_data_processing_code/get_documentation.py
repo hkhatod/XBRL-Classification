@@ -67,10 +67,10 @@ def main():
     for index, element in se.iterrows():
         if os.path.isfile(path + 'documentation/' + element['local_name'] + '.pickle'):
             logging.warning('Cleaning '+ element['local_name'])
-            df = pd.read_pickle(path + 'documentation/' + element['local_name'] + '.pickle', compression='gzip')
-            #df = df.drop(df[df['element'].str.len() < df['category'].str.len()[0]].index).reset_index()
-            df.to_pickle(path + 'documentation/' + element['local_name'] + '.pickle', compression='gzip')
-            df.to_csv(path + 'documentation/' + element['local_name'] + '.csv')
+            # df = pd.read_pickle(path + 'documentation/' + element['local_name'] + '.pickle', compression='gzip')
+            # #df = df.drop(df[df['element'].str.len() < df['category'].str.len()[0]].index).reset_index()
+            # df.to_pickle(path + 'documentation/' + element['local_name'] + '.pickle', compression='gzip')
+            # df.to_csv(path + 'documentation/' + element['local_name'] + '.csv')
             #logging.warning('Compressed ' +  element['local_name'] + ' already pickled.')
             #del df
         else:

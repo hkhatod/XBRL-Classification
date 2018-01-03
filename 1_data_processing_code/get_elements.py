@@ -20,7 +20,7 @@ import pandas as pd
 from sqlalchemy import create_engine, Integer, String
 from sqlalchemy.sql import text
 from sqlalchemy.sql import bindparam
-from input_dataset import networks, sfp_category, soi_category, scf_category
+# from input_dataset import networks, sfp_category, soi_category, scf_category
 def getdata(engine, nw, s_nw, root_p): # Gets raw data from Public database- Parent child relationships within networks.
     query = text("""WITH RECURSIVE CTE (ROW_NUM, DEPTH, NETWORK_ID, RELATIONSHIP_ID, R_DEPTH, R_SEQ, R_ORDER, CHILD_ID, CHILD_NAME, PARENT_ID, PARENT_NAME, PATH) as
                         (	
@@ -192,6 +192,7 @@ def define_statement(eng, s_n, n, stmt, class_categories):
     del par_cld
 
 def main():
+    path = './training/pickles/standard and documentation/'
     e = create_engine('postgresql+psycopg2://khatodh:445$2gD%3@public.xbrl.us:5432/edgar_db')
     logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     statements = ('SFP', 'SOI', 'SCF')
@@ -199,16 +200,16 @@ def main():
     std_nt['SFP'] = (30289066,) # SFP US GAAP 2017
     std_nt['SOI'] = (30289071,) # SOI US GAAP 2017
     std_nt['SCF'] = (30289063,) # CFS US GAAP 2017
-    nt = {}
-    nt['SFP'] = networks['standard_sfp']# + networks['SANDP500_sfp']#[1:5000]#(29594697,)
-    nt['SOI'] = networks['standard_soi']# + networks['SANDP500_soi']#[1:5000]#(29594697,)
-    nt['SCF'] = networks['standard_scf']# + networks['SANDP500_scf']#[1:5000]#(29594697,)
+    # nt = {}
+    # nt['SFP'] = networks['standard_sfp']# + networks['SANDP500_sfp']#[1:5000]#(29594697,)
+    # nt['SOI'] = networks['standard_soi']# + networks['SANDP500_soi']#[1:5000]#(29594697,)
+    # nt['SCF'] = networks['standard_scf']# + networks['SANDP500_scf']#[1:5000]#(29594697,)
     cc = {}
-    cc['SFP'] = sfp_category
-    cc['SOI'] = soi_category
-    cc['SCF'] = scf_category
+    cc['SFP'] = pickle.load(open( path +'Categories/' + 'SFP_categories.pickle','rb'))
+    cc['SOI'] = pickle.load(open( path +'Categories/' + 'SOI_categories.pickle','rb'))
+    cc['SCF'] = pickle.load(open( path +'Categories/' + 'SCF_categories.pickle','rb'))
     for i in range(0, 3):
-        define_statement(e, std_nt[statements[i]], nt[statements[i]], statements[i], cc[statements[i]])
+        define_statement(e, std_nt[statements[i]], std_nt[statements[i]], statements[i], cc[statements[i]])
 
 if __name__ == "__main__":
     main()

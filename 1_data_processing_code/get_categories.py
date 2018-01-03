@@ -8,51 +8,56 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql import bindparam
 
 def get_categories(engine, s_nw, filename):
-		query = text("""
-				SELECT 	PQ.LOCAL_NAME, concat(PQ.LOCAL_NAME,',',string_agg(EQ.LOCAL_NAME, ',')) AS CHILDREN
-				FROM	
-						DTS_RELATIONSHIP S_DR
-				JOIN	ELEMENT EP ON S_DR.FROM_ELEMENT_ID = EP.ELEMENT_ID
-				JOIN	QNAME PQ ON PQ.QNAME_ID=EP.QNAME_ID
-				JOIN	ELEMENT EE ON S_DR.TO_ELEMENT_ID = EE.ELEMENT_ID
-				JOIN  	QNAME EQ ON EQ.QNAME_ID=EE.QNAME_ID
+	path= './training/pickles/standard and documentation/Categories/'
+	
+	query = text("""
+			SELECT 	PQ.LOCAL_NAME, concat(PQ.LOCAL_NAME,',',string_agg(EQ.LOCAL_NAME, ',')) AS CHILDREN
+			FROM	
+					DTS_RELATIONSHIP S_DR
+			JOIN	ELEMENT EP ON S_DR.FROM_ELEMENT_ID = EP.ELEMENT_ID
+			JOIN	QNAME PQ ON PQ.QNAME_ID=EP.QNAME_ID
+			JOIN	ELEMENT EE ON S_DR.TO_ELEMENT_ID = EE.ELEMENT_ID
+			JOIN  	QNAME EQ ON EQ.QNAME_ID=EE.QNAME_ID
 
-				WHERE
-						S_DR.DTS_NETWORK_ID = :std_net
-				GROUP BY
-						PQ.LOCAL_NAME
-					""", bindparams=[bindparam('std_net', value=s_nw, type_=Integer)])
-		with engine.connect() as con:
-			df = pd.read_sql_query(query, con)
+			WHERE
+					S_DR.DTS_NETWORK_ID = :std_net
+			GROUP BY
+					PQ.LOCAL_NAME
+				""", bindparams=[bindparam('std_net', value=s_nw, type_=Integer)])
+	with engine.connect() as con:
+		df = pd.read_sql_query(query, con)
 
-		if filename == 'SFP':
-			sfp_category ={}
-			sfp_category['sfp'] = ('sfp','Assets','LiabilitiesAndStockholdersEquity')
-			for index, row in df.iterrows():
-				sfp_category[df['local_name'][index]] = tuple(df['children'][index].split(','))
-			with open('sfp_categories.pickle','wb') as f:
-				pickle.dump(sfp_category, f)
-		elif filename =='SOI':
-			soi_category = {}
-			soi_category['soi'] = ('soi', 'EarningsPerShareBasic','EarningsPerShareBasicAndDiluted','EarningsPerShareDiluted','NetIncomeLossAvailableToCommonStockholdersDiluted','NetIncomeLossNetOfTaxPerOutstandingLimitedPartnershipUnitDiluted',
-			'NetIncomeLossPerOutstandingGeneralPartnershipUnitNetOfTax','NetIncomeLossPerOutstandingLimitedPartnershipAndGeneralPartnershipUnitBasic','NetIncomeLossPerOutstandingLimitedPartnershipUnitBasicNetOfTax','WeightedAverageNumberOfDilutedSharesOutstanding')
-			for index, row in df.iterrows():
-				soi_category[df['local_name'][index]] = tuple(df['children'][index].split(','))
-			with open('soi_categories.pickle','wb') as f:
-				pickle.dump(soi_category, f)
-		elif filename == 'SCF':
-			scf_category = {}
-			scf_category['scf'] = ('scf', 'CashAndCashEquivalentsPeriodIncreaseDecrease', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect')
-			for index, row in df.iterrows():
-				scf_category[df['local_name'][index]] = tuple(df['children'][index].split(','))
-			with open('scf_categories.pickle','wb') as f:
-				pickle.dump(scf_category,f)			
+	if filename == 'SFP':
+		filename = path + filename
+		sfp_category ={}
+		sfp_category['sfp'] = ('sfp','Assets','LiabilitiesAndStockholdersEquity')
+		for index, row in df.iterrows():
+			sfp_category[df['local_name'][index]] = tuple(df['children'][index].split(','))
+		with open(filename + 'categories.pickle','wb') as f:
+			pickle.dump(sfp_category, f)
+	elif filename =='SOI':
+		filename = path + filename
+		soi_category = {}
+		soi_category['soi'] = ('soi', 'EarningsPerShareBasic','EarningsPerShareBasicAndDiluted','EarningsPerShareDiluted','NetIncomeLossAvailableToCommonStockholdersDiluted','NetIncomeLossNetOfTaxPerOutstandingLimitedPartnershipUnitDiluted',
+		'NetIncomeLossPerOutstandingGeneralPartnershipUnitNetOfTax','NetIncomeLossPerOutstandingLimitedPartnershipAndGeneralPartnershipUnitBasic','NetIncomeLossPerOutstandingLimitedPartnershipUnitBasicNetOfTax','WeightedAverageNumberOfDilutedSharesOutstanding')
+		for index, row in df.iterrows():
+			soi_category[df['local_name'][index]] = tuple(df['children'][index].split(','))
+		with open(filename + 'categories.pickle','wb') as f:
+			pickle.dump(soi_category, f)
+	elif filename == 'SCF':
+		filename = path + filename
+		scf_category = {}
+		scf_category['scf'] = ('scf', 'CashAndCashEquivalentsPeriodIncreaseDecrease', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect')
+		for index, row in df.iterrows():
+			scf_category[df['local_name'][index]] = tuple(df['children'][index].split(','))
+		with open(filename + 'categories.pickle','wb') as f:
+			pickle.dump(scf_category,f)			
 
 
-		logging.warning('Loaded Query with ' + str(df.shape[0]) + ' rows.')
-		df.to_csv(filename + '_category.csv')
-		df.to_pickle(filename+'_category.pickle', compression='gzip')
-		logging.warning('Loaded Query to file rows.csv')
+	logging.warning('Loaded Query with ' + str(df.shape[0]) + ' rows.')
+	df.to_csv(filename + '_category.csv')
+	# df.to_pickle(filename+'_category.pickle', compression='gzip')
+	logging.warning('Loaded Query to file rows.csv')
 
 
 def main():

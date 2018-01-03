@@ -24,29 +24,29 @@ import sys
 import gc
 import json
 import pandas as pd
-from input_dataset import sfp_category, soi_category, scf_category
+import pickle
+#from input_dataset import sfp_category, soi_category, scf_category
 
 def main():
     training_config = './code/training_config.json'
+    path = './training/pickles/standard and documentation/'
     params = json.loads(open(training_config).read())
     #process_element = sys.argv[1] replaced by  params['classify_element']
     
     logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     cc = {}
-    cc['SFP'] = sfp_category
-    cc['SOI'] = soi_category
-    cc['SCF'] = scf_category
+    cc['SFP'] = pickle.load(open( path +'Categories/' + 'SFP_categories.pickle','rb'))
+    cc['SOI'] = pickle.load(open( path +'Categories/' + 'SOI_categories.pickle','rb'))
+    cc['SCF'] = pickle.load(open( path +'Categories/' + 'SCF_categories.pickle','rb'))
     statements = ('SFP', 'SOI', 'SCF')
-    exclude = ('OtherAssetsCurrent',)
+    exclude = ()
 
     # for i in range(0, 3):
     # logging.warning('Started Processing of ' + statements[i] +'.')
     #     for key, cats in cc[statements[i]].items():
     #         logging.warning('   Started Processing of ' + cats[0] +'.')
     # """Delete i when implementing for full program"""
-    i = 0
-    path = './training/pickles/standard and documentation/'
-    #path = './training/pickles/standard and documentation/'
+    i = 2
     logging.warning('   Started Processing of  {}'.format(params['classify_element']))
     parent = path + statements[i] +'/'+ params['classify_element'] +'.pickle'
     logging.warning('   parent: ' + parent)

@@ -22,9 +22,9 @@ import utils
 BATCH_SIZE = 256
 EMBED_SIZE = 300 # dimension of the word embedding vectors
 SKIP_WINDOW = 1 # the context window
-NUM_SAMPLED = 128    # Number of negative examples to sample.
-LEARNING_RATE = 0.1
-NUM_TRAIN_STEPS = 289998
+NUM_SAMPLED = 256    # Number of negative examples to sample.
+LEARNING_RATE = 0.001
+NUM_TRAIN_STEPS = 117999
 WEIGHTS_FLD = 'processed/'
 SKIP_STEP = 2000
 
@@ -47,33 +47,33 @@ class SkipGramModel:
     def _create_embedding(self):
         """ Step 2: define weights. In word2vec, it's actually the weights that we care about """
         # Assemble this part of the graph on the CPU. You can change it to GPU if you have GPU
-        with tf.device('/cpu:0'):
-            with tf.name_scope("embed"):
-                self.embed_matrix = tf.Variable(tf.random_uniform([self.vocab_size, 
-                                                                    self.embed_size], -1.0, 1.0), 
-                                                                    name='embed_matrix')
+        #with tf.device('/cpu:0'):
+        with tf.name_scope("embed"):
+            self.embed_matrix = tf.Variable(tf.random_uniform([self.vocab_size, 
+                                                                self.embed_size], -1.0, 1.0), 
+                                                                name='embed_matrix')
 
     def _create_loss(self):
         """ Step 3 + 4: define the model + the loss function """
-        with tf.device('/cpu:0'):
-            with tf.name_scope("loss"):
-                # Step 3: define the inference
-                embed = tf.nn.embedding_lookup(self.embed_matrix, self.center_words, name='embed')
+        #with tf.device('/cpu:0'):
+        with tf.name_scope("loss"):
+            # Step 3: define the inference
+            embed = tf.nn.embedding_lookup(self.embed_matrix, self.center_words, name='embed')
 
-                # Step 4: define loss function
-                # construct variables for NCE loss
-                nce_weight = tf.Variable(tf.truncated_normal([self.vocab_size, self.embed_size],
-                                                            stddev=1.0 / (self.embed_size ** 0.5)), 
-                                                            name='nce_weight')
-                nce_bias = tf.Variable(tf.zeros([self.vocab_size]), name='nce_bias')
+            # Step 4: define loss function
+            # construct variables for NCE loss
+            nce_weight = tf.Variable(tf.truncated_normal([self.vocab_size, self.embed_size],
+                                                        stddev=1.0 / (self.embed_size ** 0.5)), 
+                                                        name='nce_weight')
+            nce_bias = tf.Variable(tf.zeros([self.vocab_size]), name='nce_bias')
 
-                # define loss function to be NCE loss function
-                self.loss = tf.reduce_mean(tf.nn.nce_loss(weights=nce_weight, 
-                                                    biases=nce_bias, 
-                                                    labels=self.target_words, 
-                                                    inputs=embed, 
-                                                    num_sampled=self.num_sampled, 
-                                                    num_classes=self.vocab_size), name='loss')
+            # define loss function to be NCE loss function
+            self.loss = tf.reduce_mean(tf.nn.nce_loss(weights=nce_weight, 
+                                                biases=nce_bias, 
+                                                labels=self.target_words, 
+                                                inputs=embed, 
+                                                num_sampled=self.num_sampled, 
+                                                num_classes=self.vocab_size), name='loss')
     def _create_optimizer(self):
         """ Step 5: define optimizer """
         with tf.device('/cpu:0'):
@@ -142,7 +142,7 @@ def train_model(model, batch_gen, num_train_steps, weights_fld):
         ''' link this tensor to its metadata file, in this case the first 500 words of vocab '''
         embedding.metadata_path = 'vocab_1000.tsv'
         
-        config.model_checkpoint_path = 'model3.ckpt'
+        #config.model_checkpoint_path = 'model3.ckpt'
 
         ''' saves a configuration file that TensorBoard will read during startup. '''
         projector.visualize_embeddings(summary_writer, config)

@@ -139,7 +139,7 @@ def main():
 
                 df_c2 = pd.DataFrame(columns=['category', 'element', 'element_name'])
                 df_c2['element_name'] = data['element']
-                df_c2['element'] =  data['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
+                df_c2['element'] =  data['element'].replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
                 
                 if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
                     df_c1['category'] = data['element']
@@ -194,7 +194,7 @@ def main():
                     del df_ce
                     del cust_data
                     gc.collect()
-                    logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
+                    logging.warning('       Completed loading custom documentation of ' + data['element'] +'.')
                 else:
                     logging.warning(cust_file + ' does not exist.')
 

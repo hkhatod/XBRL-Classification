@@ -13,7 +13,7 @@
     "classify_element":"sfp",
     "documentation":true,
     "standard_element":true,
-    "standard_ngrams":true,
+    "standard_ngrams":false,
     "custom_elements":true,
     "custom_ngrams":false,
     "custom_documentation":true,

@@ -1,4 +1,5 @@
 import pandas as pd
+import pickle
 import re
 import datefinder
 import logging
@@ -47,8 +48,7 @@ def clean(s):
 
     return(s)
 
-
-def main():
+def process_test_file():
     filename = './entire_doc_distinct.csv'
     outfile = './clean_entire_doc_distinct.csv'
     chunksize = 5000
@@ -62,6 +62,20 @@ def main():
                 w.writelines(s)
                 s=''
         w.writelines(s)
+
+
+def main():
+    # process_test_file()
+    path = './training/pickles/standard and documentation/training_sets/Embeddings/'
+    # df1 = pd.read_pickle(path + 'scf.pickle', compression='gzip')
+    # df2 = pd.read_pickle(path + 'soi.pickle', compression='gzip')
+    df3 = pd.read_pickle(path + 'sfp.pickle', compression='gzip')
+
+    # df = pd.concat([df1,df2,df3])
+    #df['element'] = df['element'].apply(clean)
+    df3['element'].to_pickle(path +'combined.pickle', compression='gzip')
+
+    df3['element'].to_csv(path +'combined.csv')
 
 
 if __name__=="__main__":

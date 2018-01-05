@@ -11,19 +11,20 @@ from __future__ import print_function
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-import numpy as np
+
 from tensorflow.contrib.tensorboard.plugins import projector
 import tensorflow as tf
+import numpy as np
 from process_data import process_data
 import utils
 
-VOCAB_SIZE = 50000
+#VOCAB_SIZE = 100000
 BATCH_SIZE = 256
 EMBED_SIZE = 300 # dimension of the word embedding vectors
 SKIP_WINDOW = 1 # the context window
-NUM_SAMPLED = 256    # Number of negative examples to sample.
+NUM_SAMPLED = 128    # Number of negative examples to sample.
 LEARNING_RATE = 0.1
-NUM_TRAIN_STEPS = 841999
+NUM_TRAIN_STEPS = 289998
 WEIGHTS_FLD = 'processed/'
 SKIP_STEP = 2000
 
@@ -64,7 +65,7 @@ class SkipGramModel:
                 nce_weight = tf.Variable(tf.truncated_normal([self.vocab_size, self.embed_size],
                                                             stddev=1.0 / (self.embed_size ** 0.5)), 
                                                             name='nce_weight')
-                nce_bias = tf.Variable(tf.zeros([VOCAB_SIZE]), name='nce_bias')
+                nce_bias = tf.Variable(tf.zeros([self.vocab_size]), name='nce_bias')
 
                 # define loss function to be NCE loss function
                 self.loss = tf.reduce_mean(tf.nn.nce_loss(weights=nce_weight, 
@@ -128,7 +129,7 @@ def train_model(model, batch_gen, num_train_steps, weights_fld):
         final_embed_matrix = sess.run(model.embed_matrix)
         
         ''' it has to variable. constants don't work here. you can't reuse model.embed_matrix '''
-        embedding_var = tf.Variable(final_embed_matrix[:100000], name='embedding')
+        embedding_var = tf.Variable(final_embed_matrix[:10000], name='embedding')
         sess.run(embedding_var.initializer)
 
         config = projector.ProjectorConfig()
@@ -139,7 +140,9 @@ def train_model(model, batch_gen, num_train_steps, weights_fld):
         embedding.tensor_name = embedding_var.name
         
         ''' link this tensor to its metadata file, in this case the first 500 words of vocab '''
-        embedding.metadata_path = 'processed/vocab_1000.tsv'
+        embedding.metadata_path = 'vocab_1000.tsv'
+        
+        config.model_checkpoint_path = 'model3.ckpt'
 
         ''' saves a configuration file that TensorBoard will read during startup. '''
         projector.visualize_embeddings(summary_writer, config)
@@ -147,9 +150,11 @@ def train_model(model, batch_gen, num_train_steps, weights_fld):
         saver_embed.save(sess, 'processed/model3.ckpt', 1)
 
 def main():
+    
+    batch_gen, VOCAB_SIZE = process_data(BATCH_SIZE, SKIP_WINDOW)
+    print(VOCAB_SIZE)
     model = SkipGramModel(VOCAB_SIZE, EMBED_SIZE, BATCH_SIZE, NUM_SAMPLED, LEARNING_RATE)
     model.build_graph()
-    batch_gen = process_data(VOCAB_SIZE, BATCH_SIZE, SKIP_WINDOW)
     train_model(model, batch_gen, NUM_TRAIN_STEPS, WEIGHTS_FLD)
 
 if __name__ == '__main__':

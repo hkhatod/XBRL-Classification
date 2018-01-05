@@ -9,7 +9,7 @@ import pandas as pd
 from sqlalchemy import create_engine, Integer, String
 from sqlalchemy.sql import text
 from sqlalchemy.sql import bindparam
-from  input_dataset import sfp_category
+#from  input_dataset import sfp_category
 
 
 def get_data(engine,ln):
@@ -58,11 +58,11 @@ def get_data(engine,ln):
     return labels
     #print(labels)
 
-
+  
 def get_std_elements(engine,nt):
    
     query = text("""
-                SELECT  Q.LOCAL_NAME
+                SELECT  DISTINCT Q.LOCAL_NAME
                 FROM
                         DTS_RELATIONSHIP R
                         ,ELEMENT E
@@ -81,11 +81,15 @@ def get_std_elements(engine,nt):
 def main():
     eng = create_engine('postgresql+psycopg2://khatodh:445$2gD%3@public.xbrl.us:5432/edgar_db')
     logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-    networks = (30289066, 30289071, 30289063)
+    networks = (30276006,30277865,30279678,30281533,30283360,30285178,30287073,30289066,
+            	30276017,30277882,30279695,30281550,30283365,30285183,30287078,30289071,
+                30275991,30277848,30279661,30281516,30283357,30285175,30287070,30289063,)
     
+
+
     logging.warning('Loaded ' + str(len(networks))  + ' networks')
-    #se = get_std_elements(eng, networks)
-    se = pd.DataFrame.from_records(zip(list(sfp_category.keys())))
+    se = get_std_elements(eng, networks)
+    #se = pd.DataFrame.from_records(zip(list(sfp_category.keys())))
     se.columns =['local_name']
     #get_data(se['local_name'][1])
 

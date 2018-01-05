@@ -94,7 +94,7 @@ def getdata(engine, nw, s_nw, root_p): # Gets raw data from Public database- Par
                         )
                         SELECT 
 				                --C.ROW_NUM as ROW_NUM, P.DEPTH as depth, 
-                                C.CHILD_NAME as CHILD_NAME, P.PATH as PATH
+                                DISTINCT C.CHILD_NAME as CHILD_NAME, P.PATH as PATH
                         FROM	
                                 CTE C
                                 ,CTE P
@@ -197,9 +197,9 @@ def main():
     logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     statements = ('SFP', 'SOI', 'SCF')
     std_nt = {}
-    std_nt['SFP'] = (30289066,) # SFP US GAAP 2017
-    std_nt['SOI'] = (30289071,) # SOI US GAAP 2017
-    std_nt['SCF'] = (30289063,) # CFS US GAAP 2017
+    std_nt['SFP'] = (30276006,30277865,30279678,30281533,30283360,30285178,30287073,30289066) # SFP US GAAP 2017
+    std_nt['SOI'] = (30276017,30277882,30279695,30281550,30283365,30285183,30287078,30289071) # SOI US GAAP 2017
+    std_nt['SCF'] = (30275991,30277848,30279661,30281516,30283357,30285175,30287070,30289063) # CFS US GAAP 2017
     # nt = {}
     # nt['SFP'] = networks['standard_sfp']# + networks['SANDP500_sfp']#[1:5000]#(29594697,)
     # nt['SOI'] = networks['standard_soi']# + networks['SANDP500_soi']#[1:5000]#(29594697,)

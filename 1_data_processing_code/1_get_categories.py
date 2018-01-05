@@ -20,7 +20,7 @@ def get_categories(engine, s_nw, filename):
 			JOIN  	QNAME EQ ON EQ.QNAME_ID=EE.QNAME_ID
 
 			WHERE
-					S_DR.DTS_NETWORK_ID = :std_net
+					S_DR.DTS_NETWORK_ID in :std_net
 			GROUP BY
 					PQ.LOCAL_NAME
 				""", bindparams=[bindparam('std_net', value=s_nw, type_=Integer)])
@@ -65,9 +65,9 @@ def main():
     logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     statements = ('SFP', 'SOI', 'SCF')
     std_nt = {}
-    std_nt['SFP'] = (30289066,) # SFP US GAAP 2017
-    std_nt['SOI'] = (30289071,) # SOI US GAAP 2017
-    std_nt['SCF'] = (30289063,) # CFS US GAAP 2017
+    std_nt['SFP'] = (30276006,30277865,30279678,30281533,30283360,30285178,30287073,30289066,) # SFP US GAAP 2017-2008
+    std_nt['SOI'] = (30276017,30277882,30279695,30281550,30283365,30285183,30287078,30289071,) # SOI US GAAP 2017-2008
+    std_nt['SCF'] = (30275991,30277848,30279661,30281516,30283357,30285175,30287070,30289063,) # CFS US GAAP 2017-2008
     for i in range(0, 3):
         get_categories(e, std_nt[statements[i]], statements[i])
 

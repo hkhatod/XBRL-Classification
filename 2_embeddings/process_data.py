@@ -15,9 +15,9 @@ import utils
 
 # Parameters for downloading data
 DOWNLOAD_URL = 'http://mattmahoney.net/dc/'
-EXPECTED_BYTES = 371395967  #31344016
+EXPECTED_BYTES = 10230523    #31344016
 DATA_FOLDER = './data/'
-FILE_NAME = 'xbrl.zip'
+FILE_NAME = 'combined.zip'
 
 def download(file_name, expected_bytes):
     """ Download the dataset text8 if it's not already downloaded """
@@ -43,21 +43,25 @@ def read_data(file_path):
         # tf.compat.as_str() converts the input into the string
     return words
 
-def build_vocab(words, vocab_size):
+def build_vocab(words):
     """ Build vocabulary of VOCAB_SIZE most frequent words """
     dictionary = dict()
     count = [('UNK', -1)]
-    count.extend(Counter(words).most_common(vocab_size - 1))
+    ''' get vocab size instead of using a fix size '''
+    #count.extend(Counter(words).most_common(vocab_size - 1))
+    count.extend(Counter(words).most_common())
+    vocab_size=len(count)
     index = 0
     utils.make_dir('processed')
     with open('processed/vocab_1000.tsv', "w") as f:
         for word, _ in count:
             dictionary[word] = index
-            if index < 100000:
-                f.write(word + "\n")
+            if index < 10000:
+            #''' wrtie the whole vocab to dic '''
+                f.write(word + "\n") 
             index += 1
     index_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
-    return dictionary, index_dictionary
+    return dictionary, index_dictionary, vocab_size
 
 def convert_words_to_index(words, dictionary):
     """ Replace each word in the dataset with its index in the dictionary """
@@ -83,19 +87,19 @@ def get_batch(iterator, batch_size):
             center_batch[index], target_batch[index] = next(iterator)
         yield center_batch, target_batch
 
-def process_data(vocab_size, batch_size, skip_window):
+def process_data(batch_size, skip_window):
     file_path = download(FILE_NAME, EXPECTED_BYTES)
     words = read_data(file_path)
-    dictionary, _ = build_vocab(words, vocab_size)
+    dictionary, _, vocab_size = build_vocab(words)
     index_words = convert_words_to_index(words, dictionary)
     del words # to save memory
     single_gen = generate_sample(index_words, skip_window)
-    return get_batch(single_gen, batch_size)
+    return get_batch(single_gen, batch_size), vocab_size
 
-def get_index_vocab(vocab_size):
+def get_index_vocab():
     file_path = download(FILE_NAME, EXPECTED_BYTES)
     words = read_data(file_path)
-    return build_vocab(words, vocab_size)
+    return build_vocab(words)
 
 if __name__=="__main__":
     download(FILE_NAME,EXPECTED_BYTES)

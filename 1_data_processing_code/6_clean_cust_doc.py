@@ -24,14 +24,17 @@ def clean(s):
      s - cleaned string where all dollar amounts, dates, and numbers 
      are conversted to $$$, @@@, and ### respectively.
     """
-    s = re.sub(r"[^A-Za-z0-9:(),!?$\'\`]", " ", s)
+    #s = re.sub(r"[^A-Za-z0-9:(),!?$\'\`]", " ", s)
     s = re.sub(r"[\$]{1}[\d,]+\.?\d{0,2}"," $$$ ",s,0)  # Replace all dollar amounts with "$$$"
+    s = re.sub(r"(\b\d{1,2}\D{0,3})?\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May?|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|(?:Nov|Dec)(?:ember)?)\D?(\d{1,2}\D?)?\D?((19[7-9]\d|20\d{2})|\d{2})", " @@@ ", s)
+
+
     matches = datefinder.find_dates(s,source=True,index=True)
     for match in matches:
         s = s.replace(match[1]," @@@ ") # Replace all dates with "@@@"
         s = re.sub(r"19|20\d{2}"," @@@ ",s,0) # Replace all years without full date with "@@@""
-    s = re.sub(r"\d{6}|\d{5}|\d{4}|\d{3}|\d{2}|\d{1}"," ### ",s) # Replace all remaining numbers with  "###"
-    s = re.sub(r"[^A-Za-z0-9:(),!?$#@\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
+    s = re.sub(r"\d{14}|\d{13}|\d{12}|\d{11}|\d{10}|\d{9}|\d{8}|\d{7}|\d{6}|\d{5}|\d{4}|\d{3}|\d{2}|\d{1}"," ### ",s) # Replace all remaining numbers with  "###"
+    s = re.sub(r"[^A-Za-z0-9$#@]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
     s = re.sub(r" : ", ":", s)
     s = re.sub(r"\'s", " \'s", s)
     s = re.sub(r"\'ve", " \'ve", s)
@@ -89,15 +92,15 @@ def tidy_split(df, column, sep='|', keep=False):
 
 def main():
     path = './training/pickles/standard and documentation/'
-    cleaned_path = path  + 'cleaned_docs/'
-    files = [f for f in listdir(path+'documentation/') if isfile(join(path+'documentation/', f))]
+    cleaned_path = path  + 'cleaned_custom_docs/'
+    files = [f for f in listdir(path+'custom_elements_processed/') if isfile(join(path+'custom_elements_processed/', f))]
     for file in files:
         if file.endswith('.pickle'):
             if os.path.isfile(cleaned_path+file):
                 logging.warning(file +' already cleaned.')
             else:
-                doc = pd.read_pickle(path+'documentation/'+file,compression='gzip')
-                doc['element'] = doc['element'].apply(clean)
+                doc = pd.read_pickle(path+'custom_elements_processed/'+file,compression='gzip')
+                doc['documentation'] = doc['documentation'].apply(clean)
                 #doc = tidy_split(doc,'element',sep='.')
                 """
                 Following line removes all rows of from the 

@@ -194,6 +194,7 @@ def main():
                     del df_ce
                     del cust_data
                     gc.collect()
+                    
                     logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
                 else:
                     logging.warning(cust_file + ' does not exist.')

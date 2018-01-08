@@ -65,17 +65,11 @@ class TextCNNRNN(object):
 			
 		
 		with tf.name_scope("RNN"):
-			GRUcell = tf.contrib.rnn.GRUCell(num_units=hidden_unit)
-			#lstm_cell = tf.nn.rnn_cell.LSTMCell(num_units=hidden_unit)
-			#lstm_cell = tf.nn.rnn_cell.GRUCell(num_units=hidden_unit)
-			#lstm_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=self.dropout_keep_prob)
-			GRUcell = tf.contrib.rnn.DropoutWrapper(GRUcell, output_keep_prob=self.dropout_keep_prob)
-			# self._initial_state = GRUcell.zero_state(self.batch_size, tf.float32)
-			#inputs = [tf.squeeze(input_, [1]) for input_ in tf.split(1, reduced, pooled_concat)]
+
 			inputs = [tf.squeeze(input_, [1]) for input_ in tf.split(pooled_concat, num_or_size_splits=int(reduced), axis=1)]
+			GRUcell = tf.contrib.rnn.GRUCell(num_units=hidden_unit)
+			GRUcell = tf.contrib.rnn.DropoutWrapper(GRUcell, output_keep_prob=self.dropout_keep_prob)
 			self._initial_state = GRUcell.zero_state(self.batch_size, tf.float32)
-			#outputs, state = tf.nn.dynamic_rnn(GRUcell, inputs, dtype=tf.float32, sequence_length=self.real_len)
-			#outputs, state = tf.nn.rnn(lstm_cell, inputs, initial_state=self._initial_state, sequence_length=self.real_len)
 			outputs, state = tf.contrib.rnn.static_rnn(GRUcell, inputs,initial_state=self._initial_state, sequence_length=self.real_len)
 			''' Collect the appropriate last words into variable output (dimension = batch x embedding_size) '''
 			self.output = outputs[0]

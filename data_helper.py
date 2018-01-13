@@ -24,7 +24,8 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S
 
 def clean_str(s):
 	#s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
-	s = re.sub(r"[^A-Za-z0-9$#@]", " ", s)
+
+	s = re.sub(r"[^A-Za-z0-9$#@:(),!?\'\`]", " ", s)
 	s = re.sub(r" : ", ":", s)
 	s = re.sub(r"\'s", " \'s", s)
 	s = re.sub(r"\'ve", " \'ve", s)
@@ -39,6 +40,9 @@ def clean_str(s):
 	s = re.sub(r"\?", " \? ", s)
 	s = re.sub(r"\s{2,}", " ", s)
 	s = re.sub(r"\s+", ' ', s).strip()
+	s = ' '.join(s.split())
+	if s is '':
+		s='-'
 	return s.strip().lower()
 
 def load_embeddings(vocabulary,embedding_dim):
@@ -97,6 +101,7 @@ def load_data(filename,vocabulary=None):
 	non_selected = list(set(df.columns) - set(selected))
 
 	df = df.drop(non_selected, axis=1)
+	df['element'] = df['element'].replace('', np.nan)
 	df = df.dropna(axis=0, how='any', subset=selected)
 	df = df.reindex(np.random.permutation(df.index))
 
@@ -109,8 +114,9 @@ def load_data(filename,vocabulary=None):
 	x_raw = df[selected[1]].apply(lambda x: clean_str(x).split(' ')).tolist()
 	df['element_c'] = x_raw
 	y_raw = df[selected[0]].apply(lambda y: label_dict[y]).tolist()
-
+	x_raw = list(filter(None, x_raw))
 	seqlen_data = np.array([len(sent) for sent in x_raw])
+	
 	x_raw = pad_sentences(x_raw)
 	print(seqlen_data)
 	if vocabulary is None:

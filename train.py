@@ -162,11 +162,11 @@ def train_cnn_rnn():
 			 ' fs:' + params['filter_sizes']  +' hu:'+ str(params['hidden_unit']) + ' l2:'+ \
 			 str(params['l2_reg_lambda'])+ ' mxps:' + str(params['max_pool_size']) + ' ep:'+ str(params['num_epochs'])
 
+
 	if params['continue_training']:
 		''' Continue training...'''
 		checkpoint_dir = os.path.dirname(training_config)
 		checkpoint_dir = checkpoint_dir + '/' +params['runname'] +'/'
-		emb_dir = checkpoint_dir +'emb_viz'
 		i = str(params['folder_suffix'])
 	else:
 		checkpoint_dir = directory +'/'+ 'CNN_RNN_' +  foldername + '/'
@@ -184,10 +184,9 @@ def train_cnn_rnn():
 			checkpoint_dir = directory  +'/'+ 'CNN_RNN_' + foldername + '/' + runname + '/'
 		params['folder_suffix'] = str(i)
 		os.makedirs(checkpoint_dir)
-		emb_dir = os.path.join(checkpoint_dir, "emb_viz")
-		os.makedirs(emb_dir)
+		
 	checkpoint_prefix = os.path.join(checkpoint_dir, foldername)
-	checkpoint_viz_prefix = os.path.join(checkpoint_dir, "emb_viz", foldername)
+
 	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels = data_helper.load_data(input_file)
 
 	'''
@@ -229,10 +228,6 @@ def train_cnn_rnn():
 	'''
 	Emdeddings labels not trained
 	'''
-
-	lst = zip(vocabulary_inv, vocabulary_count)
-	tsv_df = pd.DataFrame.from_records(lst, columns=['Label', 'Count'])
-	tsv_df.to_csv(emb_dir + '/metadata.tsv', sep='\t', columns=['Label', 'Count'], index=False)
 	logging.info('x_train: {}, x_dev: {}, x_test: {}'.format(len(x_train), len(x_dev), len(x_test)))
 	logging.info('y_train: {}, y_dev: {}, y_test: {}'.format(len(y_train), len(y_dev), len(y_test)))
 	graph = tf.Graph()
@@ -419,16 +414,22 @@ def train_cnn_rnn():
 			y_test = np.array(y_test)
 
 			df_meta = pd.DataFrame(columns=['Predicted', 'Category', 'Confidence', 'Element'])
-			df_meta['Element'] = pd.concat([df['element_name'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
+			df_meta['Element'] = pd.concat([df['element_name'][ind_test]], ignore_index=True).replace('\n', '-n')
 			#df_meta['element'] = pd.concat([df['element'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
 			df_meta['Predicted'] = predict_labels
 			df_meta['Category'] = correct_labels
-			df_meta['Confidence'] = round(confidences[1]*100, 2)
+			df_meta['Confidence'] = confidences[1]
 			df_meta['Errors'] = np.where(df_meta['Category'] == df_meta['Predicted'], 'Positive', 'Negetive')
 			np_test_outputs = np.array(outputs)
-			df_meta.to_csv(emb_dir + '/' + foldername +'_metadata.tsv', sep='\t', index=False, line_terminator='\n', quotechar='"', doublequote=True)
+			df_meta.to_csv(test_summary_dir + '/' + foldername +'_metadata.tsv', sep='\t', index=False, line_terminator='\n', quotechar='"', doublequote=True)
+
+			lst = zip(vocabulary_inv, vocabulary_count)
+			tsv_df = pd.DataFrame.from_records(lst, columns=['Label', 'Count'])
+			tsv_df.to_csv(test_summary_dir + '/metadata.tsv', sep='\t', columns=['Label', 'Count'], index=False)
+
+
 			logging.critical('Accuracy on test set: {}'.format(float(total_test_correct) / len(y_test)))
-			df_meta.to_pickle(emb_dir + '/' + foldername +'_metadata.pickle', compression='gzip')
+			df_meta.to_pickle(test_summary_dir + '/' + foldername +'_metadata.pickle', compression='gzip')
 			output_var = tf.Variable(np_test_outputs, name=foldername + 'predict_viz')
 			sess.run(output_var.initializer)
 
@@ -437,9 +438,8 @@ def train_cnn_rnn():
 			saver_embed = tf.train.Saver([embedding_var, output_var])
 			sess.run(embedding_var.initializer)
 			config = projector.ProjectorConfig()
-			config.model_checkpoint_path = emb_dir + '/' + foldername + str(best_at_step)+'viz' +'.ckpt'
-			emb_writer = tf.summary.FileWriter(emb_dir, sess.graph)
-
+			config.model_checkpoint_path = test_summary_dir + '/' + foldername + str(best_at_step)+'viz' +'.ckpt'
+			
 			embedding = config.embeddings.add()
 			embedding.metadata_path = foldername + '_metadata.tsv'
 			embedding.tensor_name = output_var.name
@@ -448,14 +448,14 @@ def train_cnn_rnn():
 			embedding.metadata_path = 'metadata.tsv'
 			embedding.tensor_name = embedding_var.name
 
-			projector.visualize_embeddings(emb_writer, config)
+			projector.visualize_embeddings(test_summary_writer, config)
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
-			emb_writer.close()
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
 
 			# Compute confusion matrix
 			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm', normalize=False)
 			test_summary_writer.add_summary(img_summary)
+
 			
 
 

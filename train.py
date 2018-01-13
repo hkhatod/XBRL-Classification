@@ -169,19 +169,19 @@ def train_cnn_rnn():
 		emb_dir = checkpoint_dir +'emb_viz'
 		i = str(params['folder_suffix'])
 	else:
-		checkpoint_dir = directory +'/'+ 'CNN_RNN' +  foldername + '/'
+		checkpoint_dir = directory +'/'+ 'CNN_RNN_' +  foldername + '/'
 		''' i is a folder increment varaiable. Its also used to update the name of tsv file.'''
 		i = 1
 		if os.path.exists(checkpoint_dir):
-			while os.path.exists(directory  +'/'+ 'Trained_' +  foldername  + str(i) + '/'):
+			while os.path.exists(directory  +'/'+ 'CNN_RNN_'+  foldername  + str(i) + '/'):
 				i += 1
 				''' dont del i as emb_viz is using for incremnting '''
-			checkpoint_dir = directory  +'/'+  'Trained_' +foldername + str(i) + '/' + runname + '/'
+			checkpoint_dir = directory  +'/'+  'CNN_RNN_' +foldername + str(i) + '/' + runname + '/'
 		else:
 			''' This del is OK '''
 			del i
 			i = ''
-			checkpoint_dir = directory  +'/'+ 'Trained_' + foldername + '/' + runname + '/'
+			checkpoint_dir = directory  +'/'+ 'CNN_RNN_' + foldername + '/' + runname + '/'
 		params['folder_suffix'] = str(i)
 		os.makedirs(checkpoint_dir)
 		emb_dir = os.path.join(checkpoint_dir, "emb_viz")

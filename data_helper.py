@@ -24,7 +24,7 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S
 
 def clean_str(s):
 	#s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
-	s = re.sub(r"[^A-Za-z0-9$#@]", "", s)
+	s = re.sub(r"[^A-Za-z0-9$#@]", " ", s)
 	s = re.sub(r" : ", ":", s)
 	s = re.sub(r"\'s", " \'s", s)
 	s = re.sub(r"\'ve", " \'ve", s)
@@ -38,6 +38,7 @@ def clean_str(s):
 	s = re.sub(r"\)", " \) ", s)
 	s = re.sub(r"\?", " \? ", s)
 	s = re.sub(r"\s{2,}", " ", s)
+	s = re.sub(r"\s+", ' ', s).strip()
 	return s.strip().lower()
 
 def load_embeddings(vocabulary,embedding_dim):

@@ -1,17 +1,8 @@
-__pycache__/process_data.cpython-36.pyc
-__pycache__/utils.cpython-36.pyc
-__pycache__/input_dataset.cpython-36.pyc
-Archive/__pycache__/input_dataset.cpython-36.pyc
 *.pyc
-__pycache__/input_dataset.cpython-36.pyc
-__pycache__/input_dataset.cpython-36.pyc
 Data_processing_code/__pycache__/input_dataset.cpython-36.pyc
-__pycache__/input_dataset.cpython-36.pyc
 1_data_processing_code/__pycache__/input_dataset.cpython-36.pyc
 2_embeddings/__pycache__/process_data.cpython-36.pyc
 2_embeddings/__pycache__/utils.cpython-36.pyc
-__pycache__/text_cnn_rnn.cpython-36.pyc
-__pycache__/text_cnn_rnn.cpython-36.pyc
 1_data_processing_code/clean_entire_doc_distinct
 1_data_processing_code/clean_entire_local_name
 1_data_processing_code/clean_entire_local_name_distinct.csv
@@ -22,6 +13,3 @@ __pycache__/text_cnn_rnn.cpython-36.pyc
 2_embeddings/data/combined.zip
 2_embeddings/data/xbrl.zip
 2_embeddings/data/xbrl.zip
-__pycache__/text_cnn_rnn.cpython-36.pyc
-__pycache__/text_cnn_rnn.cpython-36.pyc
-__pycache__/data_helper.cpython-36.pyc

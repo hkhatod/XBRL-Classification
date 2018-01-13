@@ -110,7 +110,7 @@ def load_data(filename,vocabulary=None):
 	x_raw = df[selected[1]].apply(lambda x: clean_str(x).split(' ')).tolist()
 	df['element_c'] = x_raw
 	y_raw = df[selected[0]].apply(lambda y: label_dict[y]).tolist()
-
+	x_raw = list(filter(None, x_raw))
 	x_raw = pad_sentences(x_raw)
 	if vocabulary is None:
 		vocabulary, vocabulary_inv, vocabulary_count = build_vocab(x_raw)

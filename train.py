@@ -169,7 +169,7 @@ def train_cnn_rnn():
 		emb_dir = checkpoint_dir +'emb_viz'
 		i = str(params['folder_suffix'])
 	else:
-		checkpoint_dir = directory +'/'+ 'Trained_' +  foldername + '/'
+		checkpoint_dir = directory +'/'+ 'CNN_RNN' +  foldername + '/'
 		''' i is a folder increment varaiable. Its also used to update the name of tsv file.'''
 		i = 1
 		if os.path.exists(checkpoint_dir):
@@ -273,8 +273,6 @@ def train_cnn_rnn():
 			conf_low_summary = tf.summary.scalar("confidence_low", cnn_rnn.conf_low, collections='confidence_low')
 			conf_summary = tf.summary.scalar("confidence", cnn_rnn.Avg_conf, collections='confidence')
 			conf_high_summary = tf.summary.scalar("confidence_high", cnn_rnn.conf_high, collections='confidence_high')
-			# confusion_mat = tf.summary.text("confusion_matrix",cnn_rnn.confusion_matrix)
-			# confusion_img = tf.summary.image("confusion_img",cnn_rnn.confusion_image)
 			logging.warning('conf high summay : {}'.format(conf_high_summary))
 
 			''' Train Summaries '''
@@ -287,18 +285,10 @@ def train_cnn_rnn():
 			dev_summary_dir = os.path.join(checkpoint_dir, "s", "dev")
 			dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
-			''' confusion matrix summaries for dev set'''
-			img_d_summary_dir = os.path.join(checkpoint_dir, "s","dimg")
-			img_d_summary_writer = tf.summary.FileWriter(img_d_summary_dir, sess.graph)
-
-			# ''' confusion matrix summaries for dev set'''
-			# img_tr_summary_dir = os.path.join(checkpoint_dir, "s","trimg")
-			# img_tr_summary_writer = tf.summary.FileWriter(img_tr_summary_dir, sess.graph)
-
-			''' confusion matrix summaries for test set'''
-			img_summary_dir = os.path.join(checkpoint_dir, "s", "timg")
-			img_summary_writer = tf.summary.FileWriter(img_summary_dir, sess.graph)
-			
+			''' Test summaries '''
+			test_summary_dir = os.path.join(checkpoint_dir, "s", "test")
+			test_summary_writer = tf.summary.FileWriter(test_summary_dir, sess.graph)
+			checkpoint_viz_prefix = os.path.join(test_summary_dir, foldername)
 			
 			saver = tf.train.Saver(tf.global_variables())
 
@@ -345,9 +335,6 @@ def train_cnn_rnn():
 				#print_tensors_in_checkpoint_file(tf.train.latest_checkpoint(checkpoint_dir), tensor_name='', all_tensors=True)
 
 			sess.run(tf.global_variables_initializer())
-			graph_dir = os.path.join(checkpoint_dir, "graph")
-			graph_writer = tf.summary.FileWriter(graph_dir)
-			graph_writer.add_graph(sess.graph)
 			logging.critical('Training Started')
 
 
@@ -388,7 +375,7 @@ def train_cnn_rnn():
 						
 					# Compute confusion matrix
 					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=True)
-					img_d_summary_writer.add_summary(img_d_summary, current_step)
+					dev_summary_writer.add_summary(img_d_summary, current_step)
 					
 
 				
@@ -468,9 +455,8 @@ def train_cnn_rnn():
 
 			# Compute confusion matrix
 			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm', normalize=False)
-			img_summary_writer.add_summary(img_summary)
-			img_summary_writer.close()
-
+			test_summary_writer.add_summary(img_summary)
+			
 
 
 	''' PR summaries and Confusion Matrix '''
@@ -483,15 +469,10 @@ def train_cnn_rnn():
 				with tf.name_scope('%s' % labels[cat]):
 					_, update_op = summary_lib.pr_curve_streaming_op('pr_curve', predictions=probs[:, cat],	labels=tf.cast(y_test[:, cat], tf.bool), num_thresholds=500, metrics_collections='pr')
 			pr_summary_op = tf.summary.merge_all()
-			pr_summary_dir = os.path.join(checkpoint_dir, "s", "pr")
-			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, pr_sess.graph)
 			pr_sess.run(tf.local_variables_initializer())
 			pr_sess.run([update_op])
-			pr_summary_writer.add_summary(pr_sess.run(pr_summary_op))
-			pr_summary_writer.close()
-
-
-
+			test_summary_writer.add_summary(pr_sess.run(pr_summary_op))
+			test_summary_writer.close()
 
 
 	''' Result summaries accross all runs '''

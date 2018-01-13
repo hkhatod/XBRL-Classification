@@ -9,19 +9,6 @@
 2_embeddings/__pycache__/utils.cpython-36.pyc
 2_embeddings/data/combined.zip
 2_embeddings/data/xbrl.zip
-__pycache__/data_helper.cpython-36.pyc
-__pycache__/text_cnn_rnn.cpython-36.pyc
-__pycache__/utils.cpython-36.pyc
-__pycache__/process_data.cpython-36.pyc
-__pycache__/text_cnn_rnn.cpython-36.pyc
-__pycache__/data_helper.cpython-36.pyc
-__pycache__/data_helper.cpython-36.pyc
-__pycache__/text_cnn_rnn.cpython-36.pyc
-__pycache__/data_helper.cpython-36.pyc
-__pycache__/text_cnn_rnn.cpython-36.pyc
 training_config.json
-__pycache__/data_helper.cpython-36.pyc
-__pycache__/text_cnn_rnn.cpython-36.pyc
-.gitignore
 *.pyc 
 

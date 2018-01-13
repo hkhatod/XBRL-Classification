@@ -2,7 +2,7 @@ __pycache__/process_data.cpython-36.pyc
 __pycache__/utils.cpython-36.pyc
 __pycache__/input_dataset.cpython-36.pyc
 Archive/__pycache__/input_dataset.cpython-36.pyc
-
+*.pyc
 __pycache__/input_dataset.cpython-36.pyc
 __pycache__/input_dataset.cpython-36.pyc
 Data_processing_code/__pycache__/input_dataset.cpython-36.pyc
@@ -24,3 +24,4 @@ __pycache__/text_cnn_rnn.cpython-36.pyc
 2_embeddings/data/xbrl.zip
 __pycache__/text_cnn_rnn.cpython-36.pyc
 __pycache__/text_cnn_rnn.cpython-36.pyc
+__pycache__/data_helper.cpython-36.pyc

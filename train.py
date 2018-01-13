@@ -158,9 +158,9 @@ def train_cnn_rnn():
 
 	directory, file = os.path.split(input_file)
 	foldername = os.path.splitext(file)[0]
-	runname = 'do:' + str(params['dropout_keep_prob']) + ' ed:' + str(params['embedding_dim'])+ \
+	runname =  'do:' + str(params['dropout_keep_prob']) + ' ed:' + str(params['embedding_dim'])+ \
 			 ' fs:' + params['filter_sizes']  +' hu:'+ str(params['hidden_unit']) + ' l2:'+ \
-			 str(params['l2_reg_lambda'])+ ' mxps:' + str(params['max_pool_size']) + ' ep#:'+ str(params['num_epochs'])
+			 str(params['l2_reg_lambda'])+ ' mxps:' + str(params['max_pool_size']) + ' ep:'+ str(params['num_epochs'])
 
 	if params['continue_training']:
 		''' Continue training...'''
@@ -463,6 +463,7 @@ def train_cnn_rnn():
 
 			projector.visualize_embeddings(emb_writer, config)
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
+			emb_writer.close()
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
 
 			# Compute confusion matrix

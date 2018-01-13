@@ -16,7 +16,7 @@ import pandas as pd
 #import gensim as gs
 from pprint import pprint
 from collections import Counter
-from tensorflow.contrib import learn
+#from tensorflow.contrib import learn
 
 
 logging.getLogger().setLevel(logging.INFO)
@@ -46,19 +46,16 @@ def load_embeddings(vocabulary,embedding_dim):
 	return word_embeddings
 
 def pad_sentences(sentences, padding_word="<PAD/>", forced_sequence_length=None):
-	"""Pad setences during training or prediction"""
 	if forced_sequence_length is None: # Train
 		sequence_length = max(len(x) for x in sentences)
 	else: # Prediction
 		logging.critical('This is prediction, reading the trained sequence length')
 		sequence_length = forced_sequence_length
 	logging.critical('The maximum length is {}'.format(sequence_length))
-
 	padded_sentences = []
 	for i in range(len(sentences)):
 		sentence = sentences[i]
 		num_padding = sequence_length - len(sentence)
-
 		if num_padding < 0: # Prediction: cut off the sentence if it is longer than the sequence length
 			logging.info('This sentence has to be cut off because it is longer than trained sequence length')
 			padded_sentence = sentence[0:sequence_length]
@@ -74,7 +71,7 @@ def build_vocab(sentences):
 	vocabulary = {word: index for index, word in enumerate(vocabulary_inv)}
 	return vocabulary, vocabulary_inv,vocabulary_count
 
-def batch_iter(data, batch_size, num_epochs, shuffle=True):
+def batch_iter(data, seqlen_data,  batch_size, num_epochs, shuffle=True):
 	data = np.array(data)
 	data_size = len(data)
 	num_batches_per_epoch = int(data_size / batch_size) + 1
@@ -89,7 +86,7 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
 		for batch_num in range(num_batches_per_epoch):
 			start_index = batch_num * batch_size
 			end_index = min((batch_num + 1) * batch_size, data_size)
-			yield shuffled_data[start_index:end_index]
+			yield shuffled_data[start_index:end_index], seqlen_data[start_index:end_index]
 
 def load_data(filename,vocabulary=None):
 	df = pd.read_pickle(filename, compression='gzip')
@@ -111,20 +108,23 @@ def load_data(filename,vocabulary=None):
 	df['element_c'] = x_raw
 	y_raw = df[selected[0]].apply(lambda y: label_dict[y]).tolist()
 
+	seqlen_data = np.array([len(sent) for sent in x_raw])
 	x_raw = pad_sentences(x_raw)
+	print(seqlen_data)
 	if vocabulary is None:
 		vocabulary, vocabulary_inv, vocabulary_count = build_vocab(x_raw)
 		x = np.array([[vocabulary[word] for word in sentence] for sentence in x_raw])
 		y = np.array(y_raw)
-		return x, y, vocabulary, vocabulary_inv, vocabulary_count, df, labels
+		return x, y, vocabulary, vocabulary_inv, vocabulary_count, df, labels, seqlen_data
 	else:
 		x = np.array([[vocabulary[word] for word in sentence] for sentence in x_raw])
 		y = np.array(y_raw)
-		return x, y, df, labels
+		return x, y, df, labels, seqlen_data
 
 	#df_voc.to_csv('./training/pickles/standard and documentation/training_sets/SFP/small_test/vocab.csv',sep="|")
 	
 
 if __name__ == "__main__":
-	train_file = './training/pickles/standard and documentation/training_sets/SFP/Assets/Assets.pickle'
+	
+	train_file = '/media/hemant/MVV/MyValueVest-local/main/training/pickles/standard and documentation/training_sets/SFP/CashAndCashEquivalentsAtCarryingValue/CashAndCashEquivalentsAtCarryingValue.pickle'
 	load_data(train_file)

@@ -129,9 +129,10 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusi
 	ax.set_yticklabels(classes, fontsize=8 if len(classes) < 10 else 4, va ='center')
 	ax.yaxis.set_label_position('left')
 	ax.yaxis.tick_left()
-
+	
+	thresh = cm.max()/2
 	for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-		ax.text(j, i, format(cm[i, j], 'd') if cm[i,j]!=0 else '.', horizontalalignment="center", fontsize=10 if len(classes) < 10 else 6 , verticalalignment='center', color= "black")
+		ax.text(j, i, format(cm[i, j], 'd') if cm[i,j]!=0 else '.', horizontalalignment="center", fontsize=10 if len(classes) < 10 else 6 , verticalalignment='center',   color="white" if cm[i, j] > thresh else "black")
 	fig.set_tight_layout(True)
 	summary = tfplot.figure.to_summary(fig, tag=tensor_name)
 	return summary
@@ -141,7 +142,7 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusi
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
 	base_dir = path + sys.argv[1] +'/'
-	#base_dir = path + 'Base AssetsCurrent/'
+	#base_dir = path + 'CashAndCashEquivalentsAtCarryingValue/'
 	for f in os.listdir(base_dir):
 		if f.endswith(".pickle"):
 			input_file = base_dir + f
@@ -188,7 +189,7 @@ def train_cnn_rnn():
 		os.makedirs(emb_dir)
 	checkpoint_prefix = os.path.join(checkpoint_dir, foldername)
 	checkpoint_viz_prefix = os.path.join(checkpoint_dir, "emb_viz", foldername)
-	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels = data_helper.load_data(input_file)
+	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels, seqlen_data_ = data_helper.load_data(input_file)
 
 	'''
 	Assign a embedding_dim dimension vector to each word
@@ -206,10 +207,10 @@ def train_cnn_rnn():
 	if len(x_) > 100000:
 		t_sz = 10000/len(x_)
 	indices = np.arange(len(x_))
-	x, x_test, y, y_test, ind, ind_test = train_test_split(x_, y_, indices, test_size=t_sz)
-	x_train, x_dev, y_train, y_dev, ind_train, ind_dev = train_test_split(x, y, ind, test_size=t_sz)
+	x, x_test, y, y_test, ind, ind_test, seqlen_data, seqlen_data_test = train_test_split(x_, y_, indices, seqlen_data_, test_size=t_sz)
+	x_train, x_dev, y_train, y_dev, ind_train, ind_dev, seqlen_data_train, seqlen_data_dev = train_test_split(x, y, ind, seqlen_data, test_size=t_sz)
 	logging.warning('y_train.shape[1] is : {}'.format(y_train.shape[1]))
-	params['sequence_length'] = x_train.shape[1]
+	# params['sequence_length'] = x_train.shape[1]
 	params['runname'] = runname
 	with open(os.path.dirname(os.path.dirname(checkpoint_dir)) + '/trained_parameters.json', 'w') as outfile:
 		json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
@@ -244,7 +245,7 @@ def train_cnn_rnn():
 			cnn_rnn = TextCNNRNN(embedding_mat=embedding_mat, sequence_length=x_train.shape[1],
                                  num_classes=y_train.shape[1], non_static=params['non_static'],
                                  hidden_unit=params['hidden_unit'], max_pool_size=params['max_pool_size'],
-                                 filter_sizes=map(int, params['filter_sizes'].split(",")),
+                                 filter_sizes=list(map(int, params['filter_sizes'].split(","))),
                                  num_filters=params['num_filters'], embedding_size=params['embedding_dim'],
                                  tx_labels=labels, l2_reg_lambda=params['l2_reg_lambda']
 								 )
@@ -305,13 +306,13 @@ def train_cnn_rnn():
 			def real_len(batches):
 				return [np.ceil(np.argmin(batch + [0]) * 1.0 / params['max_pool_size']) for batch in batches]
 
-			def train_step(x_batch, y_batch):
+			def train_step(x_batch, seqlen_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
                              cnn_rnn.input_y: y_batch,
                              cnn_rnn.dropout_keep_prob: params['dropout_keep_prob'],
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-                             cnn_rnn.real_len: real_len(x_batch),}
+                             cnn_rnn.seqlen: seqlen_batch,}
 				_, step, summaries,_ = sess.run([train_op, global_step, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				#_, step, predicts, corr_anws, summaries,_ = sess.run([train_op, global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
@@ -321,24 +322,24 @@ def train_cnn_rnn():
 				# return predicts, corr_anws
 			
 
-			def dev_step(x_batch, y_batch):
+			def dev_step(x_batch, seqlen_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
                              cnn_rnn.input_y: y_batch,
                              cnn_rnn.dropout_keep_prob: 1.0,
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-                             cnn_rnn.real_len: real_len(x_batch),}
+                             cnn_rnn.seqlen: seqlen_batch,}
 				step,predicts, corr_anws, summaries, accuracy, num_correct = sess.run([global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, dev_summary_op, cnn_rnn.accuracy, cnn_rnn.num_correct], feed_dict)
 				dev_summary_writer.add_summary(summaries, step)
 				return accuracy, num_correct,predicts, corr_anws
 
-			def test_step(x_batch, y_batch):
+			def test_step(x_batch, seqlen_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
                              cnn_rnn.input_y: y_batch,
                              cnn_rnn.dropout_keep_prob: 1.0,
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-                             cnn_rnn.real_len: real_len(x_batch),}
+                             cnn_rnn.seqlen: seqlen_batch,}
 				predicts, corr_anws, otpts, confs, n_crt, probs = sess.run([cnn_rnn.predictions, cnn_rnn.currect_ans, cnn_rnn.scores, cnn_rnn.conf, cnn_rnn.num_correct, cnn_rnn.probabilities], feed_dict)
 				return predicts, corr_anws, otpts, confs, n_crt, probs
 
@@ -353,14 +354,14 @@ def train_cnn_rnn():
 
 			''' Training starts here '''
 			num_batches = (int(len(x_train) / params['batch_size']) + 1)* params['num_epochs']
-			train_batches = data_helper.batch_iter(list(zip(x_train, y_train)), params['batch_size'], params['num_epochs'])
+			train_batches = data_helper.batch_iter(list(zip(x_train, y_train)), seqlen_data_train, params['batch_size'], params['num_epochs'])
 			best_accuracy, best_at_step = 0, 0
 
 			''' Train the model with x_train and y_train '''
 			logging.critical('Train the model with x_train and y_train')
-			for train_batch in train_batches:
+			for train_batch, seqlen_train_batch in train_batches:
 				x_train_batch, y_train_batch = zip(*train_batch)
-				train_step(x_train_batch, y_train_batch)
+				train_step(x_train_batch, seqlen_train_batch, y_train_batch)
 				#batch_predictions, batch_correct_anws = train_step(x_train_batch, y_train_batch)
 				current_step = tf.train.global_step(sess, global_step)
 				# _, l_t = gather_all(batch_predictions, labels)
@@ -371,12 +372,12 @@ def train_cnn_rnn():
 
 				''' Evaluate the model with x_dev and y_dev '''
 				if current_step % params['evaluate_every'] == 0:
-					dev_batches = data_helper.batch_iter(list(zip(x_dev, y_dev)), params['batch_size'], 1)
+					dev_batches = data_helper.batch_iter(list(zip(x_dev, y_dev)), seqlen_data_dev, params['batch_size'], 1)
 					total_dev_correct = 0
 					predictions, predict_labels, correct_anws, correct_labels = [],[],[],[]
-					for dev_batch in dev_batches:
+					for dev_batch, seqlen_dev_batch  in dev_batches:
 						x_dev_batch, y_dev_batch = zip(*dev_batch)
-						acc, num_dev_correct, batch_predictions, batch_correct_anws = dev_step(x_dev_batch, y_dev_batch)
+						acc, num_dev_correct, batch_predictions, batch_correct_anws = dev_step(x_dev_batch, seqlen_dev_batch, y_dev_batch)
 						total_dev_correct += num_dev_correct
 						p, l = gather_all(batch_predictions, labels)
 						predictions = predictions + p
@@ -389,10 +390,7 @@ def train_cnn_rnn():
 					# Compute confusion matrix
 					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=True)
 					img_d_summary_writer.add_summary(img_d_summary, current_step)
-					
-
-				
-				
+		
 					accuracy = float(total_dev_correct) / len(y_dev)
 					logging.info('Calculated - Accuracy on dev set: {}'.format(accuracy))
 					logging.info('Model-Accuracy on dev set: {}'.format(acc))
@@ -408,12 +406,12 @@ def train_cnn_rnn():
 			''' Evaluate x_test and y_test '''
 			saver.restore(sess, tf.train.latest_checkpoint(checkpoint_dir))
 			#saver.restore(sess, checkpoint_prefix + str(best_at_step) +'.ckpt')
-			test_batches = data_helper.batch_iter(list(zip(x_test, y_test)), params['batch_size'], 1, shuffle=False)
+			test_batches = data_helper.batch_iter(list(zip(x_test, y_test)), seqlen_data_test, params['batch_size'], 1, shuffle=False)
 			total_test_correct = 0
 			predictions, predict_labels, correct_anws, correct_labels, outputs, confidences, probs = [], [], [], [], [], [], []
-			for test_batch in test_batches:
+			for test_batch, seqlen_test_batch in test_batches:
 				x_test_batch, y_test_batch = zip(*test_batch)
-				batch_predictions, batch_correct_anws, batch_outputs, batch_confidences, num_test_correct, batch_probs = test_step(x_test_batch, y_test_batch)
+				batch_predictions, batch_correct_anws, batch_outputs, batch_confidences, num_test_correct, batch_probs = test_step(x_test_batch, seqlen_test_batch, y_test_batch)
 				total_test_correct += int(num_test_correct)
 				
 				p, l = gather_all(batch_predictions, labels)

@@ -63,7 +63,7 @@ def load_test_data(test_file, labels):
 	one_hot = np.zeros((num_labels, num_labels), int)
 	np.fill_diagonal(one_hot, 1)
 	label_dict = dict(zip(labels, one_hot))
-
+	seqlen_data = np.array([len(sent) for sent in test_examples])
 	y_ = None
 	if 'category' in df.columns:
 		select.append('category')
@@ -75,7 +75,7 @@ def load_test_data(test_file, labels):
 	not_select = list(set(df.columns) - set(select))
 	df = df.drop(not_select, axis=1)
 	#logging.warning('df.head(5) = ' + str(df.head(5)))
-	return test_examples, y_, df
+	return test_examples, y_, df, seqlen_data
 
 def map_word_to_index(examples, words_index):
 	x_ = []
@@ -96,7 +96,7 @@ def predict_unseen_data():
 	test_file = './training/pickles/standard and documentation/training_sets/' + sys.argv[2]
 
 	params, words_index, labels, embedding_mat = load_trained_params(trained_dir)
-	x_, y_, df = load_test_data(test_file, labels)
+	x_, y_, df, seqlen_data_= load_test_data(test_file, labels)
 	x_ = data_helper.pad_sentences(x_, forced_sequence_length=params['sequence_length'])
 	x_ = map_word_to_index(x_, words_index)
 
@@ -130,7 +130,7 @@ def predict_unseen_data():
                                  hidden_unit=params['hidden_unit'],
 			                     sequence_length=len(x_test[0]),
 			                     max_pool_size=params['max_pool_size'],
-			                     filter_sizes=map(int, params['filter_sizes'].split(",")),
+			                     filter_sizes=list(map(int, params['filter_sizes'].split(","))),
 			                     num_filters=params['num_filters'],
 			                     num_classes=len(labels),
 			                     embedding_size=params['embedding_dim'],
@@ -145,29 +145,29 @@ def predict_unseen_data():
 			def real_len(batches):
 				return [np.ceil(np.argmin(batch + [0]) * 1.0 / params['max_pool_size']) for batch in batches]
 
-			def predict_step(x_batch, y_batch=None):
+			def predict_step(x_batch, seqlen_bt, y_batch=None):
 				if y_batch is not None:
 					feed_dict = {cnn_rnn.input_x: x_batch,
 								cnn_rnn.input_y:y_batch,
 								cnn_rnn.dropout_keep_prob: 1.0,
 								cnn_rnn.batch_size: len(x_batch),
 								cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-								cnn_rnn.real_len: real_len(x_batch),}
+								cnn_rnn.seqlen: seqlen_bt,}
 				
 				else:
 					feed_dict = {cnn_rnn.input_x: x_batch,
 								cnn_rnn.dropout_keep_prob: 1.0,
 								cnn_rnn.batch_size: len(x_batch),
 								cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-								cnn_rnn.real_len: real_len(x_batch),}
+								cnn_rnn.seqlen: seqlen_bt,}
 					
 				
 				
-				predictions, outputs, scores, probabilities, confidences = sess.run([cnn_rnn.predictions, cnn_rnn.output, cnn_rnn.scores, cnn_rnn.probabilities, cnn_rnn.conf], feed_dict)
+				predictions, scores, probabilities, confidences = sess.run([cnn_rnn.predictions, cnn_rnn.scores, cnn_rnn.probabilities, cnn_rnn.conf], feed_dict)
 				sess.run(tf.local_variables_initializer())
 				# _, pr_summaries = sess.run([cnn_rnn.update_op, pr_summary_op],feed_dict)
 				# pr_summary_writer.add_summary(pr_summaries)				
-				return predictions, outputs, scores, probabilities, confidences
+				return predictions, scores, probabilities, confidences
 
 			logging.warning(trained_dir)
 			checkpoint_dir = trained_dir + params['runname']
@@ -179,17 +179,17 @@ def predict_unseen_data():
 			saver.restore(sess, tf.train.latest_checkpoint(checkpoint_dir))
 			logging.critical('{} has been loaded'.format(checkpoint_file))
 
-			predictions, predict_labels, scores, outputs, probabilities,predict_prob = [], [], [], [], [],[]
+			predictions, predict_labels, scores, probabilities,predict_prob = [], [], [], [], []
 			if y_ is not None:
-				batches = data_helper.batch_iter(list(zip(x_test, y_test)), params['batch_size'], 1, shuffle=False)
-				for batch in batches:
+				batches = data_helper.batch_iter(list(zip(x_test, y_test)), seqlen_data_, params['batch_size'], 1, shuffle=False)
+				for batch, seqlen_batch in batches:
 					x_batch, y_batch = zip(*batch)
-					batch_predictions, batch_outputs, batch_scores, batch_probabilities, batch_confidences = predict_step(x_batch,y_batch)
+					batch_predictions, batch_scores, batch_probabilities, batch_confidences = predict_step(x_batch, seqlen_batch, y_batch)
 					for batch_prediction in batch_predictions:
 						predictions.append(batch_prediction)
 						predict_labels.append(labels[batch_prediction])
-					for batch_output in batch_outputs:
-						outputs.append(batch_output)
+					# for batch_output in batch_outputs:
+					# 	outputs.append(batch_output)
 					for batch_score in batch_scores:
 						scores.append(batch_score)
 					for batch_probability in batch_probabilities:
@@ -198,14 +198,14 @@ def predict_unseen_data():
 						predict_prob.append(batch_confidence)
 
 			else:
-				batches = data_helper.batch_iter(list(x_test), params['batch_size'], 1, shuffle=False)
-				for x_batch in batches:
-					batch_predictions, batch_outputs, batch_scores, batch_probabilities, batch_confidences = predict_step(x_batch)
+				batches = data_helper.batch_iter(list(x_test), seqlen_data_, params['batch_size'], 1, shuffle=False)
+				for x_batch, seqlen_batch in batches:
+					batch_predictions, batch_scores, batch_probabilities, batch_confidences = predict_step(x_batch, seqlen_batch)
 					for batch_prediction in batch_predictions:
 						predictions.append(batch_prediction)
 						predict_labels.append(labels[batch_prediction])
-					for batch_output in batch_outputs:
-						outputs.append(batch_output)
+					# for batch_output in batch_outputs:
+					# 	outputs.append(batch_output)
 					for batch_score in batch_scores:
 						scores.append(batch_score)
 					for batch_probability in batch_probabilities:
@@ -217,7 +217,7 @@ def predict_unseen_data():
 			# for index, probablity in enumerate(probabilities):
 			# 	predict_prob.append(probablity[predictions[index]])
 
-			np_outputs =  np.array(outputs)
+			np_outputs =  np.array(scores)
 			
 
 			df['Predicted'] = predict_labels

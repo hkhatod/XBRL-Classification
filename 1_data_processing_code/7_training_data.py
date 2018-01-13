@@ -136,10 +136,9 @@ def main():
                 df_c1 = pd.DataFrame(columns=['category', 'element', 'element_name'])
                 df_c1['element_name'] = data['element']
                 df_c1['element'] =  data['element']
-
                 df_c2 = pd.DataFrame(columns=['category', 'element', 'element_name'])
                 df_c2['element_name'] = data['element']
-                df_c2['element'] =  data['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
+                df_c2['element'] =  data['element'].replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
                 
                 if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
                     df_c1['category'] = data['element']
@@ -152,7 +151,6 @@ def main():
                 del df_c2
                 gc.collect()   
 
-           
             if params['custom_elements']:
                 cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
                 cust_data1 = pd.DataFrame(columns=['category', 'element'])
@@ -161,14 +159,14 @@ def main():
                     df_ce = pd.read_pickle(cust_file, compression='gzip')
                     cust_data1['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
                     cust_data1['element'] = df_ce['element']
+                    cust_data1['element_name'] = data['element']
+                    cust_data2['element_name'] = data['element']
                     if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
                         cust_data1['category'] = data['element']
                         cust_data2['category'] = data['element']
                     else:
                         cust_data1['category'] = data['category']
-                        cust_data1['element_name'] = data['element'] 
                         cust_data2['category'] = data['category']
-                        cust_data2['element_name'] = data['element'] 
                     fulldataset = pd.concat([fulldataset, cust_data1, cust_data2], ignore_index=True)
                     del df_ce
                     del cust_data1
@@ -239,8 +237,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-

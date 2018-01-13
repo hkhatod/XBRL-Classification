@@ -23,7 +23,7 @@ class TextCNNRNN(object):
 			self.text_labels = tx_labels
 			l2_loss = tf.constant(0.0)
 			
-		with tf.device('/cpu:0'), tf.name_scope('embedding'):
+		with tf.device('/cpu:0'), tf.name_scope('Emb'):
 			# self.emb_var = tf.Variable(embedding_mat, name='emb_var')
 			if not non_static:
 				self.emb_var = tf.constant(embedding_mat, name='emb_var')
@@ -33,7 +33,7 @@ class TextCNNRNN(object):
 		
 		##########
 		# Bidirectional LSTM layer
-		with tf.name_scope("bidirectional-GRU"):
+		with tf.name_scope("biDRNN_GRU"):
 			GRU_fw_cell = tf.nn.rnn_cell.GRUCell(hidden_unit)
 			GRU_bw_cell = tf.nn.rnn_cell.GRUCell(hidden_unit)
 
@@ -42,16 +42,17 @@ class TextCNNRNN(object):
 				GRU_bw_cell, 
 				self.embedded_chars, 
 				sequence_length=self.seqlen, 
-				dtype=tf.float32)
+				dtype=tf.float32,
+				scope='biDRNN')
 			#lstm_outputs_fw, lstm_outputs_bw = tf.split(value=self.lstm_outputs, axis=2, num_or_size_splits=2)
 			#self.lstm_outputs = tf.add(lstm_outputs_fw, lstm_outputs_bw, name="lstm_outputs")
-			self.GRU_outputs = tf.concat(self.GRU_outputs, axis=2)
+			self.GRU_outputs = tf.concat(self.GRU_outputs, axis=2, name="GRU_outputs")
 
 		#########
 
 
 		
-		with tf.name_scope('expand'):
+		with tf.name_scope('Expand'):
 			self.emb = tf.expand_dims(self.GRU_outputs, -1)
 			# # # self.emb = tf.expand_dims(self.embedded_chars, -1)
 			

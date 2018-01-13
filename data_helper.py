@@ -23,7 +23,8 @@ logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 def clean_str(s):
-	s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
+	#s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
+	s = re.sub(r"[^A-Za-z0-9$#@]", "", s)
 	s = re.sub(r" : ", ":", s)
 	s = re.sub(r"\'s", " \'s", s)
 	s = re.sub(r"\'ve", " \'ve", s)

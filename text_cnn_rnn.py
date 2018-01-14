@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
 from tensorboard import summary as summary_lib
+from attention import attention
 
 class TextCNNRNN(object):
 	def __init__(self, embedding_mat, non_static, hidden_unit, sequence_length, max_pool_size,
@@ -48,12 +49,18 @@ class TextCNNRNN(object):
 			#self.lstm_outputs = tf.add(lstm_outputs_fw, lstm_outputs_bw, name="lstm_outputs")
 			self.GRU_outputs = tf.concat(self.GRU_outputs, axis=2, name="GRU_outputs")
 
+		with tf.name_scope("Attention"):
+			attention_output, alphas = attention(self.GRU_outputs, hidden_unit, 128, sequence_length)
+			# # # self.scores = tf.layers.dense(attention_output, num_classes, activation=None)
+			# # # self.predictions = tf.argmax(self.scores, 1, name='Predited_Class')
+			# # # self.currect_ans = tf.argmax(self.input_y, 1, name='True_Class')
+
 		#########
 
 
 		
 		with tf.name_scope('Expand'):
-			self.emb = tf.expand_dims(self.GRU_outputs, -1)
+			self.emb = tf.expand_dims(attention_output, -1)
 			# # # self.emb = tf.expand_dims(self.embedded_chars, -1)
 			
 		with tf.name_scope("CNN"):
@@ -89,33 +96,6 @@ class TextCNNRNN(object):
 			pooled_concat = tf.reshape(pooled_concat, [-1, num_filters_total])
 			pooled_concat = tf.nn.dropout(pooled_concat, self.dropout_keep_prob, name="CNN_Dropout")
 			
-		
-		# # # with tf.name_scope("RNN"):
-		# # # 	GRUcell = tf.contrib.rnn.GRUCell(num_units=hidden_unit)
-		# # # 	#lstm_cell = tf.nn.rnn_cell.LSTMCell(num_units=hidden_unit)
-		# # # 	#lstm_cell = tf.nn.rnn_cell.GRUCell(num_units=hidden_unit)
-		# # # 	#lstm_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=self.dropout_keep_prob)
-		# # # 	GRUcell = tf.contrib.rnn.DropoutWrapper(GRUcell, output_keep_prob=self.dropout_keep_prob)
-		# # # 	# self._initial_state = GRUcell.zero_state(self.batch_size, tf.float32)
-		# # # 	#inputs = [tf.squeeze(input_, [1]) for input_ in tf.split(1, reduced, pooled_concat)]
-		# # # 	inputs = [tf.squeeze(input_, [1]) for input_ in tf.split(pooled_concat, num_or_size_splits=int(reduced), axis=1)]
-		# # # 	self._initial_state = GRUcell.zero_state(self.batch_size, tf.float32)
-		# # # 	#outputs, state = tf.nn.dynamic_rnn(GRUcell, inputs, dtype=tf.float32, sequence_length=self.real_len)
-		# # # 	#outputs, state = tf.nn.rnn(lstm_cell, inputs, initial_state=self._initial_state, sequence_length=self.real_len)
-		# # # 	outputs, state = tf.contrib.rnn.static_rnn(GRUcell, inputs,initial_state=self._initial_state, sequence_length=self.real_len)
-		# # # 	''' Collect the appropriate last words into variable output (dimension = batch x embedding_size) '''
-		# # # 	self.output = outputs[0]
-
-		# # # with tf.variable_scope('Output'):
-		# # # 	tf.get_variable_scope().reuse_variables()
-		# # # 	one = tf.ones([1, hidden_unit], tf.float32)
-		# # # 	for i in range(1, len(outputs)):
-		# # # 		ind = self.real_len < (i+1)
-		# # # 		ind = tf.to_float(ind)
-		# # # 		ind = tf.expand_dims(ind, -1)
-		# # # 		mat = tf.matmul(ind, one)
-		# # # 		self.output = tf.add(tf.multiply(self.output, mat), tf.multiply(outputs[i], 1.0 - mat))
-
 		with tf.name_scope('output'):
 			# # # W = tf.Variable(tf.truncated_normal([num_filters_total, num_classes], stddev=0.1), name='W')
 			W = tf.get_variable(

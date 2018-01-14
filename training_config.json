@@ -10,13 +10,13 @@
     "non_static": true,
     "num_epochs": 1,
     "num_filters": 128,
-    "classify_element":"CashAndCashEquivalentsAtCarryingValue",
-    "documentation":true,
+    "classify_element":"AssetsCurrent",
+    "documentation":false,
     "standard_element":true,
     "standard_ngrams":true,
     "custom_elements":true,
     "custom_ngrams":false,
-    "custom_documentation":true,
+    "custom_documentation":false,
     "continue_training": false,
     "folder_suffix":""
 }

@@ -16,3 +16,5 @@ Data_processing_code/__pycache__/input_dataset.cpython-36.pyc
 __pycache__/data_helper.cpython-36.pyc
 __pycache__/text_cnn_rnn.cpython-36.pyc
 .gitignore
+__pycache__/data_helper.cpython-36.pyc
+*.cpython-36.pyc

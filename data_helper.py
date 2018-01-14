@@ -14,6 +14,7 @@ import itertools
 import numpy as np
 import pandas as pd
 #import gensim as gs
+import math
 from pprint import pprint
 from collections import Counter
 #from tensorflow.contrib import learn
@@ -80,7 +81,7 @@ def build_vocab(sentences):
 def batch_iter(data, seqlen_data,  batch_size, num_epochs, shuffle=True):
 	data = np.array(data)
 	data_size = len(data)
-	num_batches_per_epoch = int(data_size / batch_size) + 1
+	num_batches_per_epoch = int(math.ceil(data_size / batch_size))
 
 	for epoch in range(num_epochs):
 		if shuffle:

@@ -36,6 +36,8 @@ class TextCNNRNN(object):
 		with tf.name_scope("biDRNN_GRU"):
 			GRU_fw_cell = tf.nn.rnn_cell.GRUCell(hidden_unit)
 			GRU_bw_cell = tf.nn.rnn_cell.GRUCell(hidden_unit)
+			GRU_fw_cell = tf.contrib.rnn.DropoutWrapper(GRU_fw_cell, output_keep_prob=self.dropout_keep_prob)
+			GRU_bw_cell = tf.contrib.rnn.DropoutWrapper(GRU_bw_cell, output_keep_prob=self.dropout_keep_prob)
 
 			self.GRU_outputs, _ = tf.nn.bidirectional_dynamic_rnn(
 				GRU_fw_cell, 

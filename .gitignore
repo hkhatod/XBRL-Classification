@@ -13,3 +13,6 @@ Data_processing_code/__pycache__/input_dataset.cpython-36.pyc
 2_embeddings/data/combined.zip
 2_embeddings/data/xbrl.zip
 2_embeddings/data/xbrl.zip
+__pycache__/data_helper.cpython-36.pyc
+__pycache__/text_cnn_rnn.cpython-36.pyc
+.gitignore

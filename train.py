@@ -371,9 +371,6 @@ def train_cnn_rnn():
 					# Compute confusion matrix
 					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=True)
 					dev_summary_writer.add_summary(img_d_summary, current_step)
-					
-
-				
 				
 					accuracy = float(total_dev_correct) / len(y_dev)
 					logging.info('Calculated - Accuracy on dev set: {}'.format(accuracy))

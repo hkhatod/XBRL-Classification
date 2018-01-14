@@ -25,6 +25,7 @@ import gc
 import json
 import pandas as pd
 import pickle
+import numpy as np
 #from input_dataset import sfp_category, soi_category, scf_category
 
 def main():
@@ -67,6 +68,16 @@ def main():
     if os.path.isfile(parent): # Check if the parent file exist. If not, go to the next one
         dataset = pd.read_pickle(parent, compression='gzip') # load parent dataset
         fulldataset = pd.DataFrame(columns=['category', 'element'])
+        df_c1 = pd.DataFrame(columns=['category', 'element', 'element_name'])
+        if params['standard_element']:
+            fulldataset['element_name'] = dataset['element']
+            fulldataset['element'] = dataset['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
+            fulldataset['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
+            df_c1['element_name'] = dataset['element']
+            df_c1['element'] = dataset['element']
+            df_c1['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
+            fulldataset = pd.concat([fulldataset, df_c1], ignore_index=True)
+
         '''
         Remove child with that dont have any further children.
         This dataset will be used to look up files for additional data aggregation.
@@ -77,8 +88,7 @@ def main():
         #dataset = fulldataset
         dataset = dataset.drop_duplicates(subset=['category', 'element'])
         dataset.to_csv(dest_dir + params['classify_element']+'_dataset' + '.csv')
-        
-        #fulldataset['element_name'] = fulldataset['element']
+            
         #dataset = fulldataset[~fulldataset['element'].isin(fulldataset['category'])].reset_index()
         '''
         Uncomment below line if not loading base element combinations.
@@ -93,6 +103,9 @@ def main():
         '''
         for key, data in dataset.iterrows():
             #logging.warning(key -1 +' processed out of ' + rows_to_process)
+
+            
+            
             '''
             Loading cleaned documentations. comment the IF BLOCK below if you want to exclude document.
             '''
@@ -132,27 +145,8 @@ def main():
                     logging.warning('       Completed loading combinations of ' + data['element'] +'.')
                 else:
                     logging.warning(combi_file + ' does not exist.')
-            else:
-                df_c1 = pd.DataFrame(columns=['category', 'element', 'element_name'])
-                df_c1['element_name'] = data['element']
-                df_c1['element'] =  data['element']
+ 
 
-                df_c2 = pd.DataFrame(columns=['category', 'element', 'element_name'])
-                df_c2['element_name'] = data['element']
-                df_c2['element'] =  data['element'].replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
-                
-                if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
-                    df_c1['category'] = data['element']
-                    df_c2['category'] = data['element']
-                else:
-                    df_c1['category'] = data['category']
-                    df_c2['category'] = data['category']
-                fulldataset = pd.concat([fulldataset, df_c1, df_c2], ignore_index=True)
-                del df_c1
-                del df_c2
-                gc.collect()   
-
-           
             if params['custom_elements']:
                 cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
                 cust_data1 = pd.DataFrame(columns=['category', 'element'])
@@ -160,15 +154,15 @@ def main():
                 if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
                     df_ce = pd.read_pickle(cust_file, compression='gzip')
                     cust_data1['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
-                    cust_data1['element'] = df_ce['element']
+                    cust_data2['element'] = df_ce['element']
+                    cust_data1['element_name'] = df_ce['element']
+                    cust_data2['element_name'] = df_ce['element']
                     if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
                         cust_data1['category'] = data['element']
                         cust_data2['category'] = data['element']
                     else:
                         cust_data1['category'] = data['category']
-                        cust_data1['element_name'] = data['element'] 
                         cust_data2['category'] = data['category']
-                        cust_data2['element_name'] = data['element'] 
                     fulldataset = pd.concat([fulldataset, cust_data1, cust_data2], ignore_index=True)
                     del df_ce
                     del cust_data1
@@ -185,16 +179,18 @@ def main():
                 if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
                     df_ce = pd.read_pickle(cust_file, compression='gzip')
                     cust_data['element'] = df_ce['documentation']
+                    cust_data['element_name'] = data['element'] 
                     if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
                         cust_data['category'] = data['element']
                     else:
                         cust_data['category'] = data['category']
-                        cust_data['element_name'] = data['element'] 
+                        
                     fulldataset = pd.concat([fulldataset, cust_data], ignore_index=True)
                     del df_ce
                     del cust_data
                     gc.collect()
-                    logging.warning('       Completed loading custom documentation of ' + data['element'] +'.')
+                    
+                    logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
                 else:
                     logging.warning(cust_file + ' does not exist.')
 
@@ -204,11 +200,12 @@ def main():
                 if (os.path.isfile(cust_combi_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
                     df_cc = pd.read_pickle(cust_combi_file, compression='gzip')
                     cust_combi_data['element'] = df_cc['element']
+                    cust_combi_data['element_name'] = data['element']
                     if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
                         cust_combi_data['category'] = data['element']
                     else:
                         cust_combi_data['category'] = data['category']
-                        cust_combi_data['element_name'] = data['element'] 
+                         
                     fulldataset = pd.concat([fulldataset, cust_combi_data], ignore_index=True)
                     del df_cc
                     del cust_combi_data
@@ -238,8 +235,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-

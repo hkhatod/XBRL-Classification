@@ -299,7 +299,7 @@ def train_cnn_rnn():
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.seqlen: seqlen_batch,}
-				_, step, summaries,_ = sess.run([train_op, global_step, train_summary_op, cnn_rnn.confusion_update], feed_dict)
+				_, step, summaries = sess.run([train_op, global_step, train_summary_op], feed_dict)
 				#_, step, predicts, corr_anws, summaries,_ = sess.run([train_op, global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
 				# sess.run(tf.local_variables_initializer())
@@ -369,7 +369,7 @@ def train_cnn_rnn():
 		
 					accuracy = float(total_dev_correct) / len(y_dev)
 					logging.info('Calculated - Accuracy on dev set: {}'.format(accuracy))
-					logging.info('Model-Accuracy on dev set: {}'.format(acc))
+					#logging.info('Model-Accuracy on dev set: {}'.format(acc))
 					if accuracy >= best_accuracy:
 						best_accuracy, best_at_step = accuracy, current_step
 						path = saver.save(sess, checkpoint_prefix, global_step=global_step)

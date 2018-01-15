@@ -139,12 +139,12 @@ class TextCNNRNN(object):
 				correct = tf.equal(self.predictions, self.currect_ans)
 				self.num_correct = tf.reduce_sum(tf.cast(correct, 'float'))
 
-			with tf.name_scope('confusion_matrix'):
-				self.batch_confusion = tf.confusion_matrix(self.currect_ans, self.predictions, num_classes=num_classes, name='Confusion_txt')
-				self.confusion_matrix = tf.as_string(self.batch_confusion)
-				self.confusion_var = tf.Variable( tf.zeros([num_classes,num_classes],dtype=tf.int32 ),name='confusion_img' )
-				self.confusion_update = self.confusion_var.assign(self.confusion_var + self.batch_confusion)
-				self.confusion_image = tf.reshape( tf.cast(self.confusion_var, tf.float32), [1, num_classes, num_classes, 1])
+			# with tf.name_scope('confusion_matrix'):
+			# 	self.batch_confusion = tf.confusion_matrix(self.currect_ans, self.predictions, num_classes=num_classes, name='Confusion_txt')
+			# 	self.confusion_matrix = tf.as_string(self.batch_confusion)
+			# 	self.confusion_var = tf.Variable( tf.zeros([num_classes,num_classes],dtype=tf.int32 ),name='confusion_img' )
+			# 	self.confusion_update = self.confusion_var.assign(self.confusion_var + self.batch_confusion)
+			# 	self.confusion_image = tf.reshape( tf.cast(self.confusion_var, tf.float32), [1, num_classes, num_classes, 1])
 
 
 		# if self.text_labels is not None:

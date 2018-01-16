@@ -26,6 +26,8 @@ import json
 import pandas as pd
 import pickle
 import numpy as np
+import statistics
+from collections import OrderedDict
 #from input_dataset import sfp_category, soi_category, scf_category
 
 def main():
@@ -40,7 +42,7 @@ def main():
     cc['SOI'] = pickle.load(open( path +'Categories/' + 'SOI_categories.pickle','rb'))
     cc['SCF'] = pickle.load(open( path +'Categories/' + 'SCF_categories.pickle','rb'))
     statements = ('SFP', 'SOI', 'SCF')
-    exclude = ()
+    exclude = ('OtherAssetsCurrent')
 
     # for i in range(0, 3):
     # logging.warning('Started Processing of ' + statements[i] +'.')
@@ -67,17 +69,25 @@ def main():
     
     if os.path.isfile(parent): # Check if the parent file exist. If not, go to the next one
         dataset = pd.read_pickle(parent, compression='gzip') # load parent dataset
+        dataset['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
         fulldataset = pd.DataFrame(columns=['category', 'element'])
         df_c1 = pd.DataFrame(columns=['category', 'element', 'element_name'])
         if params['standard_element']:
             fulldataset['element_name'] = dataset['element']
             fulldataset['element'] = dataset['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
-            fulldataset['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
+            fulldataset['category'] = dataset['category']
+            #fulldataset['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
             df_c1['element_name'] = dataset['element']
             df_c1['element'] = dataset['element']
-            df_c1['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
+            df_c1['category'] = dataset['category']
+            #df_c1['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
             fulldataset = pd.concat([fulldataset, df_c1], ignore_index=True)
-
+        cat_counts = dict(fulldataset.category.value_counts())
+        print(cat_counts)
+        OD  = OrderedDict(sorted(cat_counts.items(), key=lambda t: t[1]))
+        Thres = int((max(OD.values())+min(OD.values()))/2)
+        #Thres = int(sum(OD.values())/len(OD.values()))
+        print(Thres)
         '''
         Remove child with that dont have any further children.
         This dataset will be used to look up files for additional data aggregation.
@@ -109,13 +119,15 @@ def main():
             '''
             Loading cleaned documentations. comment the IF BLOCK below if you want to exclude document.
             '''
-            if params['documentation']:
+            if params['documentation'] or cat_counts[data['category']] < Thres:
                 '''
                 Define path for cleaned documentations. comment line below if you want to exclude document.
                 '''
                 doc_file = path + 'cleaned_docs/' +  (data['element']) +'.pickle'
                 if os.path.isfile(doc_file) and data['element'] not in exclude:
                     dof = pd.read_pickle(doc_file, compression='gzip')
+                    dof = dof.head(n=Thres)
+                    cat_counts[data['category']] = cat_counts[data['category']] + len(dof.index)
                     dof['element_name'] = dof['category']
                     if data['category'] == params['classify_element']:# replace params['classify_element'] with cat[0]
                         dof['category'] = data['element']
@@ -130,10 +142,12 @@ def main():
             '''
             Loading base elements combinations or ngrams. comment the IF BLOCK below if you want to exclude base element combinations.
             '''
-            if params['standard_ngrams']:
+            if params['standard_ngrams'] or cat_counts[data['category']] < Thres:
                 combi_file = path + 'element_combination/'+ (data['element']) +'.pickle'
                 if os.path.isfile(combi_file):
                     df_c = pd.read_pickle(combi_file, compression='gzip')
+                    df_c = df_c.head(n=Thres)
+                    cat_counts[data['category']] = cat_counts[data['category']] + len(df_c.index)
                     df_c['element_name'] = data['element']
                     if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]
                         df_c['category'] = data['element']
@@ -147,10 +161,14 @@ def main():
                     logging.warning(combi_file + ' does not exist.')
  
 
-            if params['custom_elements']:
+            if params['custom_elements'] or cat_counts[data['category']] < Thres:
                 cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
                 cust_data1 = pd.DataFrame(columns=['category', 'element'])
                 cust_data2 = pd.DataFrame(columns=['category', 'element'])
+                cust_data1 = cust_data1.head(n=int(Thres/2))
+                cat_counts[data['category']] = cat_counts[data['category']] + len(cust_data1.index)
+                cust_data2 = cust_data2.head(n=int(Thres/2))
+                cat_counts[data['category']] = cat_counts[data['category']] + len(cust_data2.index)
                 if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
                     df_ce = pd.read_pickle(cust_file, compression='gzip')
                     cust_data1['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
@@ -173,9 +191,11 @@ def main():
                     logging.warning(cust_file + ' does not exist.')
 
 
-            if params['custom_documentation']:
+            if params['custom_documentation'] or cat_counts[data['category']] < Thres:
                 cust_file = path + 'custom_documentation/'+ (data['element']) +'.pickle'
                 cust_data = pd.DataFrame(columns=['category', 'element'])
+                cust_data = cust_data.head(n=Thres)
+                cat_counts[data['category']] = cat_counts[data['category']] + len(cust_data.index)
                 if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
                     df_ce = pd.read_pickle(cust_file, compression='gzip')
                     cust_data['element'] = df_ce['documentation']
@@ -194,11 +214,13 @@ def main():
                 else:
                     logging.warning(cust_file + ' does not exist.')
 
-            if params['custom_ngrams']:
+            if params['custom_ngrams'] or cat_counts[data['category']] < Thres:
                 cust_combi_file = path + 'custom_element_combination/'+ (data['element']) +'.pickle'
                 cust_combi_data = pd.DataFrame(columns=['category', 'element'])
                 if (os.path.isfile(cust_combi_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
                     df_cc = pd.read_pickle(cust_combi_file, compression='gzip')
+                    df_cc = df_cc.head(n=Thres)
+                    cat_counts[data['category']] = cat_counts[data['category']] + len(df_cc.index)
                     cust_combi_data['element'] = df_cc['element']
                     cust_combi_data['element_name'] = data['element']
                     if data['category'] == params['classify_element']: # replace params['classify_element'] with cat[0]

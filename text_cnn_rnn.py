@@ -110,7 +110,8 @@ class TextCNNRNN(object):
 				self.conf_high = tf.reduce_max(self.conf, name='high_conf')
 
 			with tf.name_scope('loss'):
-				losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores) #  only named arguments accepted
+				losses= tf.nn.weighted_cross_entropy_with_logits(targets=self.input_y, logits=self.scores, pos_weight=5)
+				#losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores) #  only named arguments accepted
 				self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
 			with tf.name_scope('accuracy'):
@@ -121,12 +122,12 @@ class TextCNNRNN(object):
 				correct = tf.equal(self.predictions, self.currect_ans)
 				self.num_correct = tf.reduce_sum(tf.cast(correct, 'float'))
 
-			with tf.name_scope('confusion_matrix'):
-				self.batch_confusion = tf.confusion_matrix(self.currect_ans, self.predictions, num_classes=num_classes, name='Confusion_txt')
-				self.confusion_matrix = tf.as_string(self.batch_confusion)
-				self.confusion_var = tf.Variable( tf.zeros([num_classes,num_classes],dtype=tf.int32 ),name='confusion_img' )
-				self.confusion_update = self.confusion_var.assign(self.confusion_var + self.batch_confusion)
-				self.confusion_image = tf.reshape( tf.cast(self.confusion_var, tf.float32), [1, num_classes, num_classes, 1])
+			# with tf.name_scope('confusion_matrix'):
+			# 	self.batch_confusion = tf.confusion_matrix(self.currect_ans, self.predictions, num_classes=num_classes, name='Confusion_txt')
+			# 	self.confusion_matrix = tf.as_string(self.batch_confusion)
+			# 	self.confusion_var = tf.Variable( tf.zeros([num_classes,num_classes],dtype=tf.int32 ),name='confusion_img' )
+			# 	self.confusion_update = self.confusion_var.assign(self.confusion_var + self.batch_confusion)
+			# 	self.confusion_image = tf.reshape( tf.cast(self.confusion_var, tf.float32), [1, num_classes, num_classes, 1])
 
 
 		# if self.text_labels is not None:

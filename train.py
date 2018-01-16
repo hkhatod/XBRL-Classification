@@ -297,7 +297,7 @@ def train_cnn_rnn():
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.real_len: real_len(x_batch),}
-				_, step, summaries,_ = sess.run([train_op, global_step, train_summary_op, cnn_rnn.confusion_update], feed_dict)
+				_, step, summaries = sess.run([train_op, global_step, train_summary_op], feed_dict)
 				#_, step, predicts, corr_anws, summaries,_ = sess.run([train_op, global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
 				# sess.run(tf.local_variables_initializer())
@@ -374,7 +374,7 @@ def train_cnn_rnn():
 				
 					accuracy = float(total_dev_correct) / len(y_dev)
 					logging.info('Calculated - Accuracy on dev set: {}'.format(accuracy))
-					logging.info('Model-Accuracy on dev set: {}'.format(acc))
+					#logging.info('Model-Accuracy on dev set: {}'.format(acc))
 					if accuracy >= best_accuracy:
 						best_accuracy, best_at_step = accuracy, current_step
 						path = saver.save(sess, checkpoint_prefix, global_step=global_step)
@@ -394,68 +394,56 @@ def train_cnn_rnn():
 				x_test_batch, y_test_batch = zip(*test_batch)
 				batch_predictions, batch_correct_anws, batch_outputs, batch_confidences, num_test_correct, batch_probs = test_step(x_test_batch, y_test_batch)
 				total_test_correct += int(num_test_correct)
-				
+			
 				p, l = gather_all(batch_predictions, labels)
 				predictions = predictions + p
 				predict_labels = predict_labels +l
-				
+			
 				c, l = gather_all(batch_correct_anws, labels)
 				correct_anws = correct_anws + c
 				correct_labels = correct_labels + l
-
 				outputs = outputs + gather_all(batch_outputs)
 				confidences = confidences + gather_all(batch_confidences)
 				probs = probs + gather_all(batch_probs)
 
+
 			probs = np.array(probs)
 			y_test = np.array(y_test)
-
 			df_meta = pd.DataFrame(columns=['Predicted', 'Category', 'Confidence', 'Element'])
 			df_meta['Element'] = pd.concat([df['element_name'][ind_test]], ignore_index=True).replace('\n', '-n')
 			#df_meta['element'] = pd.concat([df['element'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
 			df_meta['Predicted'] = predict_labels
 			df_meta['Category'] = correct_labels
-			df_meta['Confidence'] = confidences[1]
+			df_meta['Confidence'] = [round(x*100) for x in confidences]
 			df_meta['Errors'] = np.where(df_meta['Category'] == df_meta['Predicted'], 'Positive', 'Negetive')
+
 			np_test_outputs = np.array(outputs)
 			df_meta.to_csv(test_summary_dir + '/' + foldername +'_metadata.tsv', sep='\t', index=False, line_terminator='\n', quotechar='"', doublequote=True)
-
 			lst = zip(vocabulary_inv, vocabulary_count)
 			tsv_df = pd.DataFrame.from_records(lst, columns=['Label', 'Count'])
 			tsv_df.to_csv(test_summary_dir + '/metadata.tsv', sep='\t', columns=['Label', 'Count'], index=False)
-
-
 			logging.critical('Accuracy on test set: {}'.format(float(total_test_correct) / len(y_test)))
 			df_meta.to_pickle(test_summary_dir + '/' + foldername +'_metadata.pickle', compression='gzip')
 			output_var = tf.Variable(np_test_outputs, name=foldername + 'predict_viz')
 			sess.run(output_var.initializer)
-
 			final_embed_matrix = sess.run(cnn_rnn.emb_var)
 			embedding_var = tf.Variable(final_embed_matrix, name='embedding_viz' + str(i))
 			saver_embed = tf.train.Saver([embedding_var, output_var])
 			sess.run(embedding_var.initializer)
 			config = projector.ProjectorConfig()
 			config.model_checkpoint_path = test_summary_dir + '/' + foldername + str(best_at_step)+'viz' +'.ckpt'
-			
 			embedding = config.embeddings.add()
 			embedding.metadata_path = foldername + '_metadata.tsv'
 			embedding.tensor_name = output_var.name
-
 			embedding = config.embeddings.add()
 			embedding.metadata_path = 'metadata.tsv'
 			embedding.tensor_name = embedding_var.name
-
 			projector.visualize_embeddings(test_summary_writer, config)
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
 			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
-
 			# Compute confusion matrix
 			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm', normalize=False)
 			test_summary_writer.add_summary(img_summary)
-
-			
-
-
 	''' PR summaries and Confusion Matrix '''
 	pr_graph = tf.Graph()
 	with pr_graph.as_default():
@@ -470,26 +458,15 @@ def train_cnn_rnn():
 			pr_sess.run([update_op])
 			test_summary_writer.add_summary(pr_sess.run(pr_summary_op))
 			test_summary_writer.close()
-
-
 	''' Result summaries accross all runs '''
 	result = '\n'+ foldername + ',' + str(params['documentation']) + ',' + str(params['standard_element']) + ',' + str(params['standard_ngrams']) + ',' + \
 			str(params['custom_elements']) + ',' + str(params['custom_ngrams']) + ',' + str(y_train.shape[1]) + ',' + str(len(x_)) + ',' + str(params['num_epochs']) + ',' + \
 			str(params['batch_size']) + ',' + str(params['dropout_keep_prob']) + ',' +  str(params['embedding_dim']) +',' +  '"'+str(params['filter_sizes'])+'"'+',' +\
 			str(params['hidden_unit']) +',' + str(params['l2_reg_lambda']) + ',' + str(params['max_pool_size']) + ',' + str(params['non_static']) + ',' +\
 			str(params['num_filters']) + ',' + str(float(total_test_correct)/len(y_test))
-
 	fd = open('Result_Summary.csv', 'a')
 	fd.write(result)
 	fd.close()
-
-
-
-
-
-
-
-
 
 if __name__ == '__main__':
 	train_cnn_rnn()

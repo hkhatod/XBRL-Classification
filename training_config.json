@@ -16,7 +16,7 @@
     "standard_ngrams":false,
     "custom_elements":false,
     "custom_ngrams":false,
-    "custom_documentation":false,
+    "custom_documentation":true,
     "continue_training": false,
     "folder_suffix":""
 }

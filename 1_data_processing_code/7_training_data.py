@@ -64,14 +64,18 @@ def main():
         dest_dir = path + 'training_sets/' + statements[i] +'/' + params['classify_element']+ str(fld_spx) + '/'
             
     os.makedirs(dest_dir)
-    dest_pickle_file = dest_dir + params['classify_element'] +'.pickle'
-    dest_csv_file = dest_dir + params['classify_element'] +'.csv'
+    # # # # dest_pickle_file = dest_dir + params['classify_element'] +'.pickle'
+    # # # # dest_csv_file = dest_dir + params['classify_element'] +'.csv'
+    dest_pickle_file = dest_dir + params['classify_element'] +'_ce.pickle'
+    dest_csv_file = dest_dir + params['classify_element'] +'_ce.csv'
     
     if os.path.isfile(parent): # Check if the parent file exist. If not, go to the next one
         dataset = pd.read_pickle(parent, compression='gzip') # load parent dataset
-        dataset_cls_ele = dataset[~dataset['element'].isin(dataset['category'])].where(dataset['category']==params['classify_element']).dropna().drop_duplicates(subset=['category', 'element']).reset_index(drop=True)
-        dataset = dataset[~dataset['element'].isin(dataset['category'])].reset_index()
-        #dataset['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
+        dataset = dataset[~dataset['element'].isin(dataset['category'])].where(dataset['category']==params['classify_element']).dropna().drop_duplicates(subset=['category', 'element']).reset_index(drop=True)
+        dataset['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
+        
+        # # # # dataset = dataset[~dataset['element'].isin(dataset['category'])].reset_index()
+        
         fulldataset = pd.DataFrame(columns=['category', 'element'])
         df_c1 = pd.DataFrame(columns=['category', 'element', 'element_name'])
         Thers = 0
@@ -79,11 +83,9 @@ def main():
             fulldataset['element_name'] = dataset['element']
             fulldataset['element'] = dataset['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
             fulldataset['category'] = dataset['category']
-            #fulldataset['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
             df_c1['element_name'] = dataset['element']
             df_c1['element'] = dataset['element']
             df_c1['category'] = dataset['category']
-            #df_c1['category'] = np.where(dataset['category'] == params['classify_element'],dataset['element'], dataset['category'])
             fulldataset = pd.concat([fulldataset, df_c1], ignore_index=True)
         
         
@@ -111,6 +113,7 @@ def main():
         cat_counts = dict(fulldataset.category.value_counts())
         OD  = OrderedDict(sorted(cat_counts.items(), key=lambda t: t[1]))
         Thres = int((max(OD.values())+min(OD.values()))/2)
+        Thers = 1000000000
         # # # del fulldataset
         # # # fulldataset = pd.DataFrame(columns=['category', 'element'])
 
@@ -175,12 +178,10 @@ def main():
                 cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
                 cust_data1 = pd.DataFrame(columns=['category', 'element'])
                 cust_data2 = pd.DataFrame(columns=['category', 'element'])
-                cust_data1 = cust_data1.head(n=int(Thres/2))
-                cat_counts[data['category']] = cat_counts[data['category']] + len(cust_data1.index)
-                cust_data2 = cust_data2.head(n=int(Thres/2))
-                cat_counts[data['category']] = cat_counts[data['category']] + len(cust_data2.index)
                 if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
                     df_ce = pd.read_pickle(cust_file, compression='gzip')
+                    df_ce = df_ce.head(n=int(Thres/2))
+                    cat_counts[data['category']] = cat_counts[data['category']] + len(df_ce.index)
                     if df_ce['category'].count()>0:
                         cust_data1['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
                         cust_data2['element'] = df_ce['element']

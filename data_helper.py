@@ -106,9 +106,14 @@ def load_data(filename,vocabulary=None):
 	non_selected = list(set(df.columns) - set(selected))
 
 	df = df.drop(non_selected, axis=1)
+	df['element_name'] = df['element_name'].replace(' ', np.nan)
+	df['element'] = df['element'].replace(' ', np.nan)
+	df['element_name'] = df['element_name'].replace('', np.nan)
 	df['element'] = df['element'].replace('', np.nan)
 	df = df.dropna(axis=0, how='any', subset=selected)
-	df = df.reindex(np.random.permutation(df.index))
+	# print(df)
+	df = df.reset_index(drop=True)
+	# print(df)
 
 
 	labels = sorted(list(set(df[selected[0]].tolist())))
@@ -118,9 +123,12 @@ def load_data(filename,vocabulary=None):
 	label_dict = dict(zip(labels, one_hot))
 
 	x_raw = df[selected[1]].apply(lambda x: clean_str(x).split(' ')).tolist()
-	df['element_c'] = x_raw
+	#df['element_c'] = x_raw
 	y_raw = df[selected[0]].apply(lambda y: label_dict[y]).tolist()
-	x_raw = list(filter(None, x_raw))
+	#x_raw = list(filter(None, x_raw))
+
+	#df.to_csv('./training/pickles/standard and documentation/training_sets/SFP/AssetsCurrent3/test.csv',sep="|")
+
 	x_raw = pad_sentences(x_raw)
 	if vocabulary is None:
 		vocabulary, vocabulary_inv, vocabulary_count = build_vocab(x_raw)
@@ -136,5 +144,5 @@ def load_data(filename,vocabulary=None):
 	
 
 if __name__ == "__main__":
-	train_file = './training/pickles/standard and documentation/training_sets/SFP/Assets/Assets.pickle'
+	train_file = './training/pickles/standard and documentation/training_sets/SFP/AssetsCurrent3/AssetsCurrent.pickle'
 	load_data(train_file)

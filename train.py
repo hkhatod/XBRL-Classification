@@ -187,7 +187,7 @@ def train_cnn_rnn():
 		
 	checkpoint_prefix = os.path.join(checkpoint_dir, foldername)
 
-	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels = data_helper.load_data(input_file)
+	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df,  labels = data_helper.load_data(input_file)
 
 	'''
 	Assign a embedding_dim dimension vector to each word
@@ -253,8 +253,8 @@ def train_cnn_rnn():
 			grad_summaries = []
 			for g, v in grads_and_vars:
 				if g is not None:
-					grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
-					sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+					grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(re.sub(r"[.?:]","_", v.name)), g)
+					sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(re.sub(r"[.?:]","_", v.name)), tf.nn.zero_fraction(g))
 					grad_summaries.append(grad_hist_summary)
 					grad_summaries.append(sparsity_summary)
 			grad_summaries_merged = tf.summary.merge(grad_summaries)
@@ -398,13 +398,15 @@ def train_cnn_rnn():
 				p, l = gather_all(batch_predictions, labels)
 				predictions = predictions + p
 				predict_labels = predict_labels +l
-			
+				del p, l
 				c, l = gather_all(batch_correct_anws, labels)
 				correct_anws = correct_anws + c
 				correct_labels = correct_labels + l
+				del c, l
 				outputs = outputs + gather_all(batch_outputs)
 				confidences = confidences + gather_all(batch_confidences)
 				probs = probs + gather_all(batch_probs)
+
 
 
 			probs = np.array(probs)

@@ -169,19 +169,19 @@ def train_cnn_rnn():
 		checkpoint_dir = checkpoint_dir + '/' +params['runname'] +'/'
 		i = str(params['folder_suffix'])
 	else:
-		checkpoint_dir = directory +'/'+ 'BiDRNN_AT_CNN' + '/'
+		checkpoint_dir = directory +'/'+ 'CNN_+_BiDRNN_PAR' + '/'
 		''' i is a folder increment varaiable. Its also used to update the name of tsv file.'''
 		i = 1
 		if os.path.exists(checkpoint_dir):
-			while os.path.exists(directory  +'/'+ 'BiDRNN_AT_CNN'  + str(i) + '/'):
+			while os.path.exists(directory  +'/'+ 'CNN_+_BiDRNN_PAR'  + str(i) + '/'):
 				i += 1
 				''' dont del i as emb_viz is using for incremnting '''
-			checkpoint_dir = directory  +'/'+  'BiDRNN_AT_CNN'  + str(i) + '/' + runname + '/'
+			checkpoint_dir = directory  +'/'+  'CNN_+_BiDRNN_PAR'  + str(i) + '/' + runname + '/'
 		else:
 			''' This del is OK '''
 			del i
 			i = ''
-			checkpoint_dir = directory  +'/'+ 'BiDRNN_AT_CNN' + '/' + runname + '/'
+			checkpoint_dir = directory  +'/'+ 'CNN_+_BiDRNN_PAR' + '/' + runname + '/'
 		params['folder_suffix'] = str(i)
 		os.makedirs(checkpoint_dir)
 		
@@ -289,8 +289,8 @@ def train_cnn_rnn():
 			
 			saver = tf.train.Saver(tf.global_variables())
 
-			# def real_len(batches):
-			# 	return [np.ceil(np.argmin(batch + [0]) * 1.0 / params['max_pool_size']) for batch in batches]
+			def real_len(batches):
+				return [np.ceil(np.argmin(batch + [0]) * 1.0 / params['max_pool_size']) for batch in batches]
 
 			def train_step(x_batch, seqlen_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
@@ -298,7 +298,8 @@ def train_cnn_rnn():
                              cnn_rnn.dropout_keep_prob: params['dropout_keep_prob'],
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-                             cnn_rnn.seqlen: seqlen_batch,}
+                             cnn_rnn.seqlen: seqlen_batch,
+							 cnn_rnn.real_len: real_len(x_batch),}
 				_, step, summaries = sess.run([train_op, global_step, train_summary_op], feed_dict)
 				#_, step, predicts, corr_anws, summaries,_ = sess.run([train_op, global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
@@ -314,7 +315,8 @@ def train_cnn_rnn():
                              cnn_rnn.dropout_keep_prob: 1.0,
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-                             cnn_rnn.seqlen: seqlen_batch,}
+                             cnn_rnn.seqlen: seqlen_batch,
+							 cnn_rnn.real_len: real_len(x_batch),}
 				step,predicts, corr_anws, summaries, accuracy, num_correct = sess.run([global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, dev_summary_op, cnn_rnn.accuracy, cnn_rnn.num_correct], feed_dict)
 				dev_summary_writer.add_summary(summaries, step)
 				return accuracy, num_correct,predicts, corr_anws
@@ -325,7 +327,8 @@ def train_cnn_rnn():
                              cnn_rnn.dropout_keep_prob: 1.0,
                              cnn_rnn.batch_size: len(x_batch),
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-                             cnn_rnn.seqlen: seqlen_batch,}
+                             cnn_rnn.seqlen: seqlen_batch,
+							 cnn_rnn.real_len: real_len(x_batch),}
 				predicts, corr_anws, otpts, confs, n_crt, probs = sess.run([cnn_rnn.predictions, cnn_rnn.currect_ans, cnn_rnn.scores, cnn_rnn.conf, cnn_rnn.num_correct, cnn_rnn.probabilities], feed_dict)
 				return predicts, corr_anws, otpts, confs, n_crt, probs
 

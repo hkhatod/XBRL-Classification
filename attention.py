@@ -8,5 +8,5 @@ def attention(inputs, rnn_cell_size, hidden_layer_size, sequence_length):
 
     logits = tf.reshape(logits, [-1, sequence_length, 1])
     alphas = tf.nn.softmax(logits, dim=1)
-    encoded_sentence = inputs * alphas
+    encoded_sentence = tf.reduce_sum(inputs * alphas, axis=1)
     return encoded_sentence, alphas

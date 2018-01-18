@@ -257,25 +257,26 @@ def predict_unseen_data():
 			#print_tensors_in_checkpoint_file(predicted_dir +'viz' +'.ckpt',tensor_name='',all_tensors=True)	
 
 	''' PR summaries '''
-	probabilities = np.array(probabilities)
-	pr_graph = tf.Graph()
-	with pr_graph.as_default():
-		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-		pr_sess = tf.Session(config=session_conf)
-		with pr_sess.as_default():
-			for cat in range(y_test.shape[1]):
-				with tf.name_scope('Predicted_%s' % labels[cat]):
-					_, update_op = summary_lib.pr_curve_streaming_op('pr_curve',
-																		predictions=probabilities[:, cat],
-																		labels=tf.cast(y_test[:, cat], tf.bool),
-																		num_thresholds=500,
-																		metrics_collections='pr')
-			pr_summary_op = tf.summary.merge_all()
-			pr_summary_dir = os.path.join(predicted_dir, "summaries", "pr")
-			pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, pr_sess.graph)
-			pr_sess.run(tf.local_variables_initializer())
-			pr_sess.run([update_op])
-			pr_summary_writer.add_summary(pr_sess.run(pr_summary_op))
+	if y_ is not None:
+		probabilities = np.array(probabilities)
+		pr_graph = tf.Graph()
+		with pr_graph.as_default():
+			session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+			pr_sess = tf.Session(config=session_conf)
+			with pr_sess.as_default():
+				for cat in range(y_test.shape[1]):
+					with tf.name_scope('Predicted_%s' % labels[cat]):
+						_, update_op = summary_lib.pr_curve_streaming_op('pr_curve',
+																			predictions=probabilities[:, cat],
+																			labels=tf.cast(y_test[:, cat], tf.bool),
+																			num_thresholds=500,
+																			metrics_collections='pr')
+				pr_summary_op = tf.summary.merge_all()
+				pr_summary_dir = os.path.join(predicted_dir, "summaries", "pr")
+				pr_summary_writer = tf.summary.FileWriter(pr_summary_dir, pr_sess.graph)
+				pr_sess.run(tf.local_variables_initializer())
+				pr_sess.run([update_op])
+				pr_summary_writer.add_summary(pr_sess.run(pr_summary_op))
 
 if __name__ == '__main__':
 	predict_unseen_data()

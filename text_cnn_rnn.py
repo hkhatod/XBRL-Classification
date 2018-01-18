@@ -110,7 +110,7 @@ class TextCNNRNN(object):
 				self.conf_high = tf.reduce_max(self.conf, name='high_conf')
 
 			with tf.name_scope('loss'):
-				losses= tf.nn.weighted_cross_entropy_with_logits(targets=self.input_y, logits=self.scores, pos_weight=25)
+				losses= tf.nn.weighted_cross_entropy_with_logits(targets=self.input_y, logits=self.scores, pos_weight=1)
 				#losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores) #  only named arguments accepted
 				self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 

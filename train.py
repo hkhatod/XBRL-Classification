@@ -369,7 +369,7 @@ def train_cnn_rnn():
 						correct_labels = correct_labels + l
 						
 					# Compute confusion matrix
-					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=True)
+					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=False)
 					dev_summary_writer.add_summary(img_d_summary, current_step)
 				
 					accuracy = float(total_dev_correct) / len(y_dev)

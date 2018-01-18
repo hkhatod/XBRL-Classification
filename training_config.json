@@ -3,12 +3,12 @@
     "dropout_keep_prob": 0.75,
     "embedding_dim": 300,
     "evaluate_every": 100,
-    "filter_sizes": "3,4,5",
+    "filter_sizes": "3,5,7",
     "hidden_unit": 300,
     "l2_reg_lambda": 0.0,
     "max_pool_size": 4,
     "non_static": true,
-    "num_epochs": 2,
+    "num_epochs": 1,
     "num_filters": 128,
     "classify_element":"AssetsCurrent",
     "documentation":true,
@@ -16,7 +16,9 @@
     "standard_ngrams":false,
     "custom_elements":false,
     "custom_ngrams":false,
-    "custom_documentation":true,
+    "custom_documentation":false,
     "continue_training": false,
-    "folder_suffix":""
+    "folder_suffix":"",
+    "oversample": true,
+    "final_step": false
 }

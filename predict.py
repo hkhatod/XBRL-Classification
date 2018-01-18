@@ -222,8 +222,8 @@ def predict_unseen_data():
 
 			df['Predicted'] = predict_labels
 			#df['max_score'] = predictions
-			#df['scores'] = scores
-			#df['probablities'] =  probabilities
+			df['scores'] = scores
+			df['probablities'] =  probabilities
 			#df['true_prop'] =  y_
 			df['Confidence_old'] = predict_prob
 			df['Confidence'] = [round(x*100,2) for x in predict_prob]

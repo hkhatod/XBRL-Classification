@@ -255,8 +255,8 @@ def train_cnn_rnn():
 			grad_summaries = []
 			for g, v in grads_and_vars:
 				if g is not None:
-					grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
-					sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+					grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(re.sub(r"[.?:]","_", v.name)), g)
+					sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(re.sub(r"[.?:]","_", v.name)), tf.nn.zero_fraction(g))
 					grad_summaries.append(grad_hist_summary)
 					grad_summaries.append(sparsity_summary)
 			grad_summaries_merged = tf.summary.merge(grad_summaries)
@@ -364,7 +364,7 @@ def train_cnn_rnn():
 						correct_labels = correct_labels + l
 						
 					# Compute confusion matrix
-					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=True)
+					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=False)
 					dev_summary_writer.add_summary(img_d_summary, current_step)
 		
 					accuracy = float(total_dev_correct) / len(y_dev)

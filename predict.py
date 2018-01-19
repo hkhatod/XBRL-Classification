@@ -36,7 +36,7 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S
 
 def load_trained_params(trained_dir):
 	params = json.loads(open(trained_dir + 'trained_parameters.json').read())
-	words_index = json.loads(open(trained_dir + 'words_index.json').read())
+	words_index = json.loads(open(trained_dir + 'vocabulary.json').read())
 	labels = json.loads(open(trained_dir + 'labels.json').read())
 
 	with open(trained_dir + 'embeddings.pickle', 'rb') as input_file:

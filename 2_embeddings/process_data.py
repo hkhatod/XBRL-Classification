@@ -63,6 +63,7 @@ def build_vocab(words):
     index_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
     return dictionary, index_dictionary, vocab_size
 
+
 def convert_words_to_index(words, dictionary):
     """ Replace each word in the dataset with its index in the dictionary """
     return [dictionary[word] if word in dictionary else 0 for word in words]

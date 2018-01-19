@@ -12,13 +12,7 @@
 #pylint: disable=W1202
 #pylint: disable=
 #pylint: disable=
-
-'''
-
-Run :
-python3 ./code/train.py 'small_test/AssetsCurrent.pickle'
-'''
-
+''' Run : python3 ./code/train.py 'small_test/AssetsCurrent.pickle' '''
 import os
 import io
 import sys
@@ -41,34 +35,31 @@ from PIL import Image
 import tfplot
 import matplotlib
 import re
-#import matplotlib.pyplot as plt
 from text_cnn_rnn import TextCNNRNN
 import data_helper
-# E1101:Module 'numpy' has no 'float32' member
-# W0105:W0105:String statement has no effect
-# C0330:Wrong continued indentation
-# E0611:No name 'tensorboard' in module 'LazyLoader'
-# E1129:Context manager 'generator' doesn't implement __enter__ and __exit__.
-
-'''
-To implement:
-1. Implement reading pretrained embeddings.
-3. NCE weights.
-'''
-
-
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 def load_trained_params(trained_dir):
-	# params = json.loads(open(trained_dir + 'trained_parameters.json').read())
-	# words_index = json.loads(open(trained_dir + 'words_index.json').read())
-	# labels = json.loads(open(trained_dir + 'labels.json').read())
+
+	vocabulary = json.loads(open(trained_dir + 'vocabulary.json').read())
+	vocabulary_inv = json.loads(open(trained_dir + 'vocabulary_inv.json').read())
+	vocabulary_count = json.loads(open(trained_dir + 'vocabulary_count.json').read())
+	labels = json.loads(open(trained_dir + 'labels.json').read())
+	
+	with open(trained_dir + 'x_.pickle', 'rb') as input_file:
+		x_ = pickle.load(input_file)
+	
+	with open(trained_dir + 'y_.pickle', 'rb') as input_file:
+		y_ = pickle.load(input_file)
+
+	with open(trained_dir + 'df.pickle', 'rb') as input_file:
+		df = pickle.load(input_file)
 
 	with open(trained_dir + 'embeddings.pickle', 'rb') as input_file:
 		fetched_embedding = pickle.load(input_file)
 	embedding_mat = np.array(fetched_embedding, dtype=np.float32)
-	return embedding_mat
+	return x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels, embedding_mat 
 
 def gather_all(batchs, labels=None):
 	items = []
@@ -82,7 +73,6 @@ def gather_all(batchs, labels=None):
 			items.append(batch)
 			label_items.append(labels[batch])
 		return items, label_items
-
 
 def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusion matrix', tensor_name = 'MyFigure/image', normalize=True):
 	''' 
@@ -136,8 +126,6 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusi
 	summary = tfplot.figure.to_summary(fig, tag=tensor_name)
 	return summary
 
-
-
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
 	base_dir = path + sys.argv[1] +'/'
@@ -145,7 +133,6 @@ def train_cnn_rnn():
 	for f in os.listdir(base_dir):
 		if f.endswith(".pickle"):
 			input_file = base_dir + f
-
 	# try:
 	# 	training_config = path + sys.argv[2]
 	# 	params = json.loads(open(training_config).read())
@@ -154,53 +141,41 @@ def train_cnn_rnn():
 	#training_config = './code/training_config.json'
 	training_config = base_dir + 'training_config.json'
 	params = json.loads(open(training_config).read())
-	params['continue_training'] = False
-
+	
 	directory, file = os.path.split(input_file)
 	foldername = os.path.splitext(file)[0]
 	runname =  'do:' + str(params['dropout_keep_prob']) + ' ed:' + str(params['embedding_dim'])+ \
 			 ' fs:' + params['filter_sizes']  +' hu:'+ str(params['hidden_unit']) + ' l2:'+ \
 			 str(params['l2_reg_lambda'])+ ' mxps:' + str(params['max_pool_size']) + ' ep:'+ str(params['num_epochs'])
 
-
-	if params['continue_training']:
-		''' Continue training...'''
-		checkpoint_dir = os.path.dirname(training_config)
-		checkpoint_dir = checkpoint_dir + '/' +params['runname'] +'/'
-		i = str(params['folder_suffix'])
-	else:
-		checkpoint_dir = directory +'/'+ 'CNN_RNN' + '/'
-		''' i is a folder increment varaiable. Its also used to update the name of tsv file.'''
-		i = 1
-		if os.path.exists(checkpoint_dir):
-			while os.path.exists(directory  +'/'+ 'CNN_RNN' + str(i) + '/'):
-				i += 1
-				''' dont del i as emb_viz is using for incremnting '''
-			checkpoint_dir = directory  +'/'+  'CNN_RNN' + str(i) + '/' + runname + '/'
+	i=0
+	checkpoint_dir = directory +'/'+ 'CNN_RNN' + str(i) + '/'
+	if os.path.exists(checkpoint_dir):
+		while os.path.exists(directory  +'/'+ 'CNN_RNN' + str(i) + '/'):
+			i += 1
+			''' dont del i as emb_viz is using for incremnting '''
+		if params['continue_training']:
+			checkpoint_dir = directory  +'/'+  'CNN_RNN' + str(i-1) + '/' + runname + '/'
 		else:
-			''' This del is OK '''
-			del i
-			i = ''
-			checkpoint_dir = directory  +'/'+ 'CNN_RNN' + '/' + runname + '/'
-		params['folder_suffix'] = str(i)
-		os.makedirs(checkpoint_dir)
-		
-	checkpoint_prefix = os.path.join(checkpoint_dir, foldername)
-
-	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df,  labels = data_helper.load_data(input_file)
-
-	'''
-	Assign a embedding_dim dimension vector to each word
-	'''
-	if params['continue_training']:
-		embedding_mat = load_trained_params(os.path.dirname(training_config)+'/')
+			checkpoint_dir = directory  +'/'+  'CNN_RNN' + str(i) + '/' + runname + '/'
+			os.makedirs(checkpoint_dir)
 	else:
+		''' This del is OK '''
+		checkpoint_dir = directory  +'/'+ 'CNN_RNN'+  str(i)  + '/' + runname + '/'
+		os.makedirs(checkpoint_dir)
+	
+	params['folder_suffix'] = str(i)
+	checkpoint_prefix = os.path.join(checkpoint_dir, foldername)
+	
+	'''	Assign a embedding_dim dimension vector to each word'''
+	if params['continue_training']:
+		x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df,  labels, embedding_mat = load_trained_params(os.path.dirname(os.path.dirname(checkpoint_dir))+'/')
+	else:
+		x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df,  labels = data_helper.load_data(input_file)
 		word_embeddings = data_helper.load_embeddings(vocabulary, params['embedding_dim'])
 		embedding_mat = [word_embeddings[word] for index, word in enumerate(vocabulary_inv)]
 		embedding_mat = np.array(embedding_mat, dtype=np.float32)
-	'''
-	Split the original dataset into train set and test set
-	'''
+	'''	Split the original dataset into train set and test set	'''
 	t_sz = 0.1
 	if len(x_) > 100000:
 		t_sz = 10000/len(x_)
@@ -212,22 +187,23 @@ def train_cnn_rnn():
 	params['runname'] = runname
 	with open(os.path.dirname(os.path.dirname(checkpoint_dir)) + '/trained_parameters.json', 'w') as outfile:
 		json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
-	'''
-	use folder name as subscript instead of 'model'
-	'''
-
-	'''
-	Save trained parameters and files since predict.py needs them
-	'''
-	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/words_index.json', 'w') as outfile:
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/vocabulary.json', 'w') as outfile: #was word_index
 		json.dump(vocabulary, outfile, indent=4, ensure_ascii=False)
-	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/embeddings.pickle', 'wb') as outfile:
-		pickle.dump(embedding_mat, outfile, pickle.HIGHEST_PROTOCOL)
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/vocabulary_inv.json', 'w') as outfile:
+		json.dump(vocabulary_inv, outfile, indent=4, ensure_ascii=False)
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/vocabulary_count.json', 'w') as outfile:
+		json.dump(vocabulary_count, outfile, indent=4, ensure_ascii=False)		
 	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/labels.json', 'w') as outfile:
 		json.dump(labels, outfile, indent=4, ensure_ascii=False)
-	'''
-	Emdeddings labels not trained
-	'''
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/x_.pickle', 'wb') as outfile:
+		pickle.dump(x_, outfile, pickle.HIGHEST_PROTOCOL)	
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/y_.pickle', 'wb') as outfile:
+		pickle.dump(y_, outfile, pickle.HIGHEST_PROTOCOL)	
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/df.pickle', 'wb') as outfile:
+		pickle.dump(df, outfile, pickle.HIGHEST_PROTOCOL)	
+	
+
+	''' 	Emdeddings labels not trained	'''
 	logging.info('x_train: {}, x_dev: {}, x_test: {}'.format(len(x_train), len(x_dev), len(x_test)))
 	logging.info('y_train: {}, y_dev: {}, y_test: {}'.format(len(y_train), len(y_dev), len(y_test)))
 	graph = tf.Graph()
@@ -243,12 +219,10 @@ def train_cnn_rnn():
                                  num_filters=params['num_filters'], embedding_size=params['embedding_dim'],
                                  tx_labels=labels, l2_reg_lambda=params['l2_reg_lambda']
 								 )
-			#optimizer = tf.train.AdamOptimizer()
 			global_step = tf.Variable(0, name='global_step', trainable=False)
 			optimizer = tf.train.RMSPropOptimizer(1e-3, decay=0.9)
 			grads_and_vars = optimizer.compute_gradients(cnn_rnn.loss)
 			train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
-
 			''' Keep track of gradient values and sparsity (optional) '''
 			grad_summaries = []
 			for g, v in grads_and_vars:
@@ -258,10 +232,7 @@ def train_cnn_rnn():
 					grad_summaries.append(grad_hist_summary)
 					grad_summaries.append(sparsity_summary)
 			grad_summaries_merged = tf.summary.merge(grad_summaries)
-
 			''' Output directory for models and summaries '''
-			print("Writing to {}\n".format(checkpoint_dir))
-
 			''' Summaries for loss and accuracy '''
 			loss_summary = tf.summary.scalar("loss", cnn_rnn.loss)
 			acc_summary = tf.summary.scalar("accuracy", cnn_rnn.accuracy)
@@ -269,22 +240,19 @@ def train_cnn_rnn():
 			conf_summary = tf.summary.scalar("confidence", cnn_rnn.Avg_conf, collections='confidence')
 			conf_high_summary = tf.summary.scalar("confidence_high", cnn_rnn.conf_high, collections='confidence_high')
 			logging.warning('conf high summay : {}'.format(conf_high_summary))
-
 			''' Train Summaries '''
 			train_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
 			train_summary_dir = os.path.join(checkpoint_dir, "s", "train")
 			train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
-
 			''' Dev summaries '''
 			dev_summary_op = tf.summary.merge([loss_summary, acc_summary, conf_summary, conf_low_summary, conf_high_summary, grad_summaries_merged])
 			dev_summary_dir = os.path.join(checkpoint_dir, "s", "dev")
 			dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
-
 			''' Test summaries '''
 			test_summary_dir = os.path.join(checkpoint_dir, "s", "test")
 			test_summary_writer = tf.summary.FileWriter(test_summary_dir, sess.graph)
 			checkpoint_viz_prefix = os.path.join(test_summary_dir, foldername)
-			
+
 			saver = tf.train.Saver(tf.global_variables())
 
 			def real_len(batches):
@@ -298,13 +266,7 @@ def train_cnn_rnn():
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.real_len: real_len(x_batch),}
 				_, step, summaries = sess.run([train_op, global_step, train_summary_op], feed_dict)
-				#_, step, predicts, corr_anws, summaries,_ = sess.run([train_op, global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
-				# sess.run(tf.local_variables_initializer())
-				# _, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
-				# pr_summary_writer.add_summary(pr_summaries, step)
-				# return predicts, corr_anws
-			
 
 			def dev_step(x_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
@@ -326,15 +288,20 @@ def train_cnn_rnn():
                              cnn_rnn.real_len: real_len(x_batch),}
 				predicts, corr_anws, otpts, confs, n_crt, probs = sess.run([cnn_rnn.predictions, cnn_rnn.currect_ans, cnn_rnn.scores, cnn_rnn.conf, cnn_rnn.num_correct, cnn_rnn.probabilities], feed_dict)
 				return predicts, corr_anws, otpts, confs, n_crt, probs
-
-				#print_tensors_in_checkpoint_file(tf.train.latest_checkpoint(checkpoint_dir), tensor_name='', all_tensors=True)
-
+			
 			sess.run(tf.global_variables_initializer())
 			logging.critical('Training Started')
+			if params['continue_training']:
+				ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+				# if that checkpoint exists, restore from checkpoint
+				if ckpt and ckpt.model_checkpoint_path:
+					saver.restore(sess, ckpt.model_checkpoint_path)
+				else:
+					logging.warning("No checkpoint files exist. Starting training from scratch.")
 
 
 			''' Training starts here '''
-			num_batches = (int(len(x_train) / params['batch_size']) + 1)* params['num_epochs']
+			num_batches = global_step.eval()+(int(len(x_train) / params['batch_size']) + 1)* params['num_epochs']
 			train_batches = data_helper.batch_iter(list(zip(x_train, y_train)), params['batch_size'], params['num_epochs'])
 			best_accuracy, best_at_step = 0, 0
 
@@ -343,13 +310,7 @@ def train_cnn_rnn():
 			for train_batch in train_batches:
 				x_train_batch, y_train_batch = zip(*train_batch)
 				train_step(x_train_batch, y_train_batch)
-				#batch_predictions, batch_correct_anws = train_step(x_train_batch, y_train_batch)
 				current_step = tf.train.global_step(sess, global_step)
-				# _, l_t = gather_all(batch_predictions, labels)
-				# _, cl_t = gather_all(batch_correct_anws, labels)
-				# # Compute confusion matrix
-				# img_tr_summary = plot_confusion_matrix(cl_t, l_t, labels, tensor_name='train/cm')
-				# img_tr_summary_writer.add_summary(img_tr_summary, current_step)
 
 				''' Evaluate the model with x_dev and y_dev '''
 				if current_step % params['evaluate_every'] == 0:
@@ -374,19 +335,18 @@ def train_cnn_rnn():
 				
 					accuracy = float(total_dev_correct) / len(y_dev)
 					logging.info('Calculated - Accuracy on dev set: {}'.format(accuracy))
-					#logging.info('Model-Accuracy on dev set: {}'.format(acc))
 					if accuracy >= best_accuracy:
 						best_accuracy, best_at_step = accuracy, current_step
 						path = saver.save(sess, checkpoint_prefix, global_step=global_step)
-						#path = saver.save(sess, checkpoint_prefix +str(current_step) +'.ckpt')
-						#logging.critical('Saved model {} at step {} of total step {}'.format(path, best_at_step, num_batches))
-						logging.critical('Best accuracy {} at step {}'.format(best_accuracy, best_at_step))
+						logging.critical('Best accuracy {} at step {}. Model saved'.format(best_accuracy, best_at_step))
 					logging.critical('....................................Completed {} steps of total {} steps. {} % Completed.'.format(current_step, num_batches,int(current_step/num_batches*100)))
 
+			dev_summary_writer.close()
+			train_summary_writer.close()
 			logging.critical('Training is complete, testing the best model on x_test and y_test')
+			
 			''' Evaluate x_test and y_test '''
 			saver.restore(sess, tf.train.latest_checkpoint(checkpoint_dir))
-			#saver.restore(sess, checkpoint_prefix + str(best_at_step) +'.ckpt')
 			test_batches = data_helper.batch_iter(list(zip(x_test, y_test)), params['batch_size'], 1, shuffle=False)
 			total_test_correct = 0
 			predictions, predict_labels, correct_anws, correct_labels, outputs, confidences, probs = [], [], [], [], [], [], []
@@ -407,8 +367,6 @@ def train_cnn_rnn():
 				confidences = confidences + gather_all(batch_confidences)
 				probs = probs + gather_all(batch_probs)
 
-
-
 			probs = np.array(probs)
 			y_test = np.array(y_test)
 			df_meta = pd.DataFrame(columns=['Predicted', 'Category', 'Confidence', 'Element'])
@@ -421,6 +379,7 @@ def train_cnn_rnn():
 
 			np_test_outputs = np.array(outputs)
 			df_meta.to_csv(test_summary_dir + '/' + foldername +'_metadata.tsv', sep='\t', index=False, line_terminator='\n', quotechar='"', doublequote=True)
+			
 			lst = zip(vocabulary_inv, vocabulary_count)
 			tsv_df = pd.DataFrame.from_records(lst, columns=['Label', 'Count'])
 			tsv_df.to_csv(test_summary_dir + '/metadata.tsv', sep='\t', columns=['Label', 'Count'], index=False)
@@ -442,11 +401,13 @@ def train_cnn_rnn():
 			embedding.tensor_name = embedding_var.name
 			projector.visualize_embeddings(test_summary_writer, config)
 			saver_embed.save(sess, checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt')
-			#print_tensors_in_checkpoint_file(checkpoint_viz_prefix + str(best_at_step)+'viz' +'.ckpt', tensor_name='', all_tensors=True)
-			# Compute confusion matrix
+
+			
+			'''  Compute confusion matrix  '''
 			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm', normalize=False)
 			test_summary_writer.add_summary(img_summary)
-	''' PR summaries and Confusion Matrix '''
+
+	''' PR summaries '''
 	pr_graph = tf.Graph()
 	with pr_graph.as_default():
 		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -469,6 +430,8 @@ def train_cnn_rnn():
 	fd = open('Result_Summary.csv', 'a')
 	fd.write(result)
 	fd.close()
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/embeddings.pickle', 'wb') as outfile:
+		pickle.dump(final_embed_matrix, outfile, pickle.HIGHEST_PROTOCOL)	
 
 if __name__ == '__main__':
 	train_cnn_rnn()

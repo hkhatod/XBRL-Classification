@@ -12,6 +12,7 @@ import numpy as np
 from six.moves import urllib
 import tensorflow as tf
 import utils
+import json
 
 # Parameters for downloading data
 DOWNLOAD_URL = 'http://mattmahoney.net/dc/'
@@ -61,6 +62,8 @@ def build_vocab(words):
                 f.write(word + "\n") 
             index += 1
     index_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    with open(DATA_FOLDER  + '/vocabulary.json', 'w') as outfile: #was word_index
+	    json.dump(dictionary, outfile, indent=4, ensure_ascii=False)
     return dictionary, index_dictionary, vocab_size
 
 

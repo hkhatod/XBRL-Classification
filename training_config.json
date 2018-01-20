@@ -17,8 +17,8 @@
     "custom_elements":false,
     "custom_ngrams":false,
     "custom_documentation":false,
-    "continue_training": false,
+    "training_mode": "start",
     "folder_suffix":"",
-    "oversample": true,
+    "oversample": false,
     "final_step": false
 }

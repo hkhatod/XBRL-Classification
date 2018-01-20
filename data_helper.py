@@ -53,6 +53,26 @@ def load_embeddings(vocabulary,embedding_dim):
 		word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
 	return word_embeddings
 
+def load_pre_trained_embeddings(pt_vocabulary, vocabulary, embedding_dim, pt_embedding_mat):
+	# # # word_embeddings = {}
+	# # # for word in pt_vocabulary:
+	# # # 	word_embeddings[word] = pt_embedding_mat[pt_vocabulary[word]]
+	# # # i = len(pt_vocabulary)-1
+	# # # for word in vocabulary:
+	# # # 	if word not in pt_vocabulary:
+	# # # 		word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
+	# # # 		i += 1
+	# # # 		pt_vocabulary[word] = i
+	# # # vocabulary_inv = list(pt_vocabulary.keys())
+	# # # return pt_vocabulary, vocabulary_inv, word_embeddings
+	word_embeddings = {}
+	for word in vocabulary:
+		if word in pt_vocabulary:
+			word_embeddings[word] = pt_embedding_mat[pt_vocabulary[word]]
+		else:
+			word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
+	return word_embeddings
+
 def pad_sentences(sentences, padding_word="<PAD/>", forced_sequence_length=None):
 	"""Pad setences during training or prediction"""
 	if forced_sequence_length is None: # Train
@@ -99,7 +119,7 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
 			end_index = min((batch_num + 1) * batch_size, data_size)
 			yield shuffled_data[start_index:end_index]
 
-def load_data(filename,vocabulary=None):
+def load_data(filename):
 	df = pd.read_pickle(filename, compression='gzip')
 	#selected = ['category', 'element']
 	selected = ['category', 'element', 'element_name']
@@ -128,17 +148,12 @@ def load_data(filename,vocabulary=None):
 	#x_raw = list(filter(None, x_raw))
 
 	#df.to_csv('./training/pickles/standard and documentation/training_sets/SFP/AssetsCurrent3/test.csv',sep="|")
-
 	x_raw = pad_sentences(x_raw)
-	if vocabulary is None:
-		vocabulary, vocabulary_inv, vocabulary_count = build_vocab(x_raw)
-		x = np.array([[vocabulary[word] for word in sentence] for sentence in x_raw])
-		y = np.array(y_raw)
-		return x, y, vocabulary, vocabulary_inv, vocabulary_count, df, labels
-	else:
-		x = np.array([[vocabulary[word] for word in sentence] for sentence in x_raw])
-		y = np.array(y_raw)
-		return x, y, df, labels
+	vocabulary, vocabulary_inv, vocabulary_count = build_vocab(x_raw)
+	x = np.array([[vocabulary[word] for word in sentence] for sentence in x_raw])
+	y = np.array(y_raw)
+	return x, y, vocabulary, vocabulary_inv, vocabulary_count, df, labels
+
 
 	#df_voc.to_csv('./training/pickles/standard and documentation/training_sets/SFP/small_test/vocab.csv',sep="|")
 	

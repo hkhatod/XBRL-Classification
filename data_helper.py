@@ -66,12 +66,25 @@ def load_pre_trained_embeddings(pt_vocabulary, vocabulary, embedding_dim, pt_emb
 	# # # vocabulary_inv = list(pt_vocabulary.keys())
 	# # # return pt_vocabulary, vocabulary_inv, word_embeddings
 	word_embeddings = {}
+	i = len(pt_vocabulary)-1
 	for word in vocabulary:
 		if word in pt_vocabulary:
 			word_embeddings[word] = pt_embedding_mat[pt_vocabulary[word]]
 		else:
 			word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
-	return word_embeddings
+			i += 1
+			pt_vocabulary[word] = i
+			pt_embedding_mat[pt_vocabulary[word]] = word_embeddings[word]
+	return word_embeddings, pt_vocabulary, pt_embedding_mat
+
+
+
+''' update master embeddings '''
+def update_master_emb(pt_vocabulary, vocabulary, pt_embedding_mat, word_embeddings ):
+	for word in vocabulary:
+		pt_embedding_mat[pt_vocabulary[word]] = word_embeddings[word]
+	return pt_embedding_mat
+	''' end update master embeddings '''
 
 def pad_sentences(sentences, padding_word="<PAD/>", forced_sequence_length=None):
 	"""Pad setences during training or prediction"""

@@ -17,14 +17,15 @@ import tensorflow as tf
 import numpy as np
 from process_data import process_data
 import utils
+import pickle
 
 #VOCAB_SIZE = 100000
 BATCH_SIZE = 256
 EMBED_SIZE = 300 # dimension of the word embedding vectors
 SKIP_WINDOW = 1 # the context window
 NUM_SAMPLED = 256    # Number of negative examples to sample.
-LEARNING_RATE = 0.001
-NUM_TRAIN_STEPS = 117999
+LEARNING_RATE = 0.00001
+NUM_TRAIN_STEPS = 11999
 WEIGHTS_FLD = 'processed/'
 SKIP_STEP = 2000
 
@@ -129,7 +130,7 @@ def train_model(model, batch_gen, num_train_steps, weights_fld):
         final_embed_matrix = sess.run(model.embed_matrix)
         
         ''' it has to variable. constants don't work here. you can't reuse model.embed_matrix '''
-        embedding_var = tf.Variable(final_embed_matrix[:10000], name='embedding')
+        embedding_var = tf.Variable(final_embed_matrix, name='embedding')
         sess.run(embedding_var.initializer)
 
         config = projector.ProjectorConfig()
@@ -148,6 +149,10 @@ def train_model(model, batch_gen, num_train_steps, weights_fld):
         projector.visualize_embeddings(summary_writer, config)
         saver_embed = tf.train.Saver([embedding_var])
         saver_embed.save(sess, 'processed/model3.ckpt', 1)
+
+        with open(WEIGHTS_FLD  + '/embeddings.pickle', 'wb') as outfile:
+            pickle.dump(final_embed_matrix, outfile, pickle.HIGHEST_PROTOCOL)	
+
 
 def main():
     

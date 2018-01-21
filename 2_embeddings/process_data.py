@@ -13,12 +13,36 @@ from six.moves import urllib
 import tensorflow as tf
 import utils
 import json
+import re
 
 # Parameters for downloading data
 DOWNLOAD_URL = 'http://mattmahoney.net/dc/'
-EXPECTED_BYTES = 10230523    #31344016
+EXPECTED_BYTES = 1462417     #31344016
 DATA_FOLDER = './data/'
-FILE_NAME = 'combined.zip'
+FILE_NAME = 'Assets.zip'
+
+def clean_str(s):
+	#s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
+
+	s = re.sub(r"[^A-Za-z0-9$#@:(),!?\'\`]", " ", s)
+	s = re.sub(r" : ", ":", s)
+	s = re.sub(r"\'s", " \'s", s)
+	s = re.sub(r"\'ve", " \'ve", s)
+	s = re.sub(r"n\'t", " n\'t", s)
+	s = re.sub(r"\'re", " \'re", s)
+	s = re.sub(r"\'d", " \'d", s)
+	s = re.sub(r"\'ll", " \'ll", s)
+	s = re.sub(r",", " , ", s)
+	s = re.sub(r"!", " ! ", s)
+	s = re.sub(r"\(", " \( ", s)
+	s = re.sub(r"\)", " \) ", s)
+	s = re.sub(r"\?", " \? ", s)
+	s = re.sub(r"\s{2,}", " ", s)
+	s = re.sub(r"\s+", ' ', s).strip()
+	s = ' '.join(s.split())
+	if s is '':
+		s='-'
+	return s.strip().lower()
 
 def download(file_name, expected_bytes):
     """ Download the dataset text8 if it's not already downloaded """
@@ -40,14 +64,14 @@ def read_data(file_path):
     There should be 17,005,207 tokens
     """
     with zipfile.ZipFile(file_path) as f:
-        words = tf.compat.as_str(f.read(f.namelist()[0])).split() 
+        words = clean_str(tf.compat.as_str(f.read(f.namelist()[0]))).split() 
         # tf.compat.as_str() converts the input into the string
     return words
 
 def build_vocab(words):
     """ Build vocabulary of VOCAB_SIZE most frequent words """
     dictionary = dict()
-    count = [('UNK', -1)]
+    count = [('<PADS>', -1)]
     ''' get vocab size instead of using a fix size '''
     #count.extend(Counter(words).most_common(vocab_size - 1))
     count.extend(Counter(words).most_common())
@@ -57,9 +81,9 @@ def build_vocab(words):
     with open('processed/vocab_1000.tsv', "w") as f:
         for word, _ in count:
             dictionary[word] = index
-            if index < 10000:
+            # if index < 10000:
             #''' wrtie the whole vocab to dic '''
-                f.write(word + "\n") 
+            f.write(word + "\n") 
             index += 1
     index_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
     with open(DATA_FOLDER  + '/vocabulary.json', 'w') as outfile: #was word_index

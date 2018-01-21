@@ -81,12 +81,17 @@ def main():
         fulldataset = pd.DataFrame(columns=['category', 'element'])
         df_c1 = pd.DataFrame(columns=['category', 'element', 'element_name'])
         Thres = 0
+        dataset = dataset.drop_duplicates(subset=['category', 'element'])
+        dataset.to_csv(dest_dir + params['classify_element']+'_dataset' + '.csv') 
         if params['standard_element']:
             fulldataset['element_name'] = dataset['element']
             fulldataset['element'] = dataset['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
             fulldataset['category'] = dataset['category']
-        dataset = dataset.drop_duplicates(subset=['category', 'element'])
-        dataset.to_csv(dest_dir + params['classify_element']+'_dataset' + '.csv') 
+            df_c1['element_name'] = dataset['element']
+            df_c1['element'] = dataset['element']
+            df_c1['category'] = dataset['category']
+            fulldataset = pd.concat([fulldataset, df_c1], ignore_index=True)
+        
         
         for key, data in dataset.iterrows():
             '''
@@ -109,15 +114,13 @@ def main():
                     logging.warning(doc_file + ' does not exist.')
         
         
+
+        
+
         cat_counts = dict(fulldataset.category.value_counts())
         OD  = OrderedDict(sorted(cat_counts.items(), key=lambda t: t[1]))
         Thres = int((max(OD.values())+min(OD.values()))/2)
 
-        if cat_counts[data['category']] < Thres:
-            df_c1['element_name'] = dataset['element']
-            df_c1['element'] = dataset['element']
-            df_c1['category'] = dataset['category']
-            fulldataset = pd.concat([fulldataset, df_c1], ignore_index=True)
         # # # del fulldataset
         # # # fulldataset = pd.DataFrame(columns=['category', 'element'])
 
@@ -163,10 +166,7 @@ def main():
             # # #         dof = dof.head(n=Thres)
             # # #         cat_counts[data['category']] = cat_counts[data['category']] + len(dof.index)
             # # #         dof['element_name'] = dof['category']
-            # # #         if data['category'] == params['classify_element']:# replace params['classify_element'] with cat[0]
-            # # #             dof['category'] = data['element']
-            # # #         else:
-            # # #             dof['category'] = data['category']
+            # # #         dof['category'] = data['category']
             # # #         fulldataset = pd.concat([fulldataset, dof], ignore_index=True)
             # # #         del dof
             # # #         gc.collect()
@@ -224,7 +224,7 @@ def main():
                     logging.warning(cust_file + ' does not exist.')
 
             if params['standard_ngrams'] or cat_counts[data['category']] < Thres:
-                combi_file = path + 'element_combination/'+ (data['element']) +'.pickle'
+                combi_file = path + 'clean_element_combinations/'+ (data['element']) +'.pickle'
                 if os.path.isfile(combi_file):
                     df_c = pd.read_pickle(combi_file, compression='gzip')
                     df_c = df_c.head(n=Thres)
@@ -240,7 +240,7 @@ def main():
 
 
             if params['custom_ngrams'] or cat_counts[data['category']] < Thres:
-                cust_combi_file = path + 'custom_element_combination/'+ (data['element']) +'.pickle'
+                cust_combi_file = path + 'cleaned_custom_element_combination/'+ (data['element']) +'.pickle'
                 cust_combi_data = pd.DataFrame(columns=['category', 'element'])
                 if (os.path.isfile(cust_combi_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
                     df_cc = pd.read_pickle(cust_combi_file, compression='gzip')
@@ -289,7 +289,7 @@ def main():
         OD  = OrderedDict(sorted(cat_counts.items(), key=lambda t: t[1]))
         Thres = int((max(OD.values())+min(OD.values()))/2)
         Thres_min = int((max(OD.values())-min(OD.values()))/2)
-        print("Thres_min/Thres {}".format(Thres_min/Thres*100))
+        print("Thres {}".format(Thres))
         fulldataset.to_pickle(dest_pickle_file, compression='gzip')
         fulldataset.to_csv(dest_csv_file)
         print(fulldataset.category.value_counts())

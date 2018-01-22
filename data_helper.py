@@ -71,6 +71,7 @@ def load_pre_trained_embeddings(pt_vocabulary, vocabulary, embedding_dim, pt_emb
 		if word in pt_vocabulary:
 			word_embeddings[word] = pt_embedding_mat[pt_vocabulary[word]]
 		else:
+			print(word)
 			word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
 			i += 1
 			pt_vocabulary[word] = i

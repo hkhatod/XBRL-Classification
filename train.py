@@ -40,28 +40,9 @@ import data_helper
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-def load_trained_params(trained_dir):
-	# # # if training_mode == "continue":
-	# # # 	vocabulary = json.loads(open(trained_dir + 'vocabulary.json').read())
-	# # # 	with open(trained_dir + 'embeddings.pickle', 'rb') as input_file:
-	# # # 		fetched_embedding = pickle.load(input_file)
-	# # # 	embedding_mat = np.array(fetched_embedding, dtype=np.float32)
-	# # # 	vocabulary_inv = json.loads(open(trained_dir + 'vocabulary_inv.json').read())
-	# # # 	vocabulary_count = json.loads(open(trained_dir + 'vocabulary_count.json').read())
-	# # # 	labels = json.loads(open(trained_dir + 'labels.json').read())
-		
-	# # # 	with open(trained_dir + 'x_.pickle', 'rb') as input_file:
-	# # # 		x_ = pickle.load(input_file)
-		
-	# # # 	with open(trained_dir + 'y_.pickle', 'rb') as input_file:
-	# # # 		y_ = pickle.load(input_file)
-
-	# # # 	with open(trained_dir + 'df.pickle', 'rb') as input_file:
-	# # # 		df = pickle.load(input_file)
-	# # # 	return x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels, embedding_mat
-	# # # else:
-	vocabulary = json.loads(open(trained_dir + 'master_vocabulary.json').read())
-	with open(trained_dir + 'master_embeddings.pickle', 'rb') as input_file:
+def load_trained_params(trained_dir, filename):
+	vocabulary = json.loads(open(trained_dir + filename + '_master_vocabulary.json').read())
+	with open(trained_dir + filename +  '_master_embeddings.pickle', 'rb') as input_file:
 		fetched_embedding = pickle.load(input_file)
 	embedding_mat = np.array(fetched_embedding, dtype=np.float32)
 	return vocabulary, embedding_mat
@@ -137,37 +118,17 @@ def train_cnn_rnn():
 	runname = 'do:' + str(params['dropout_keep_prob']) + ' ed:' + str(params['embedding_dim'])+ \
 			 ' fs:' + params['filter_sizes']  +' hu:'+ str(params['hidden_unit']) + ' l2:'+ \
 			 str(params['l2_reg_lambda'])+ ' mxps:' + str(params['max_pool_size']) + ' ep:'+ str(params['num_epochs'])
-	# # # i = 0
-	# # # checkpoint_dir = directory +'/'+ 'CNN_RNN' + str(i) + '/'
-	# # # if os.path.exists(checkpoint_dir):
-	# # # 	while os.path.exists(directory  +'/'+ 'CNN_RNN' + str(i) + '/'):
-	# # # 		i += 1
-	# # # 		''' dont del i as emb_viz is using for incremnting '''
-	# # # 	if params['pre_trained']:
-	# # # 		checkpoint_dir = directory  +'/'+  'CNN_RNN' + str(i-1) + '/' + runname + '/'
-	# # # 	else:
-	# # # 		checkpoint_dir = directory  +'/'+  'CNN_RNN' + str(i) + '/' + runname + '/'
-	# # # 		os.makedirs(checkpoint_dir)
-	# # # else:
-	# # # 	''' This del is OK '''
+
 	checkpoint_dir = directory  +'/'+ 'CNN_RNN' + '/' + runname + '/'
 	if not os.path.exists(checkpoint_dir):
 		os.makedirs(checkpoint_dir)
-
-	# # # params['folder_suffix'] = str(i)
 	checkpoint_prefix = os.path.join(checkpoint_dir, foldername)
-	# # # '''	Assign a embedding_dim dimension vector to each word'''
-	# # # if params['training_mode'] == "continue": # Avaialble choises: "continue" , "start", "reuse"
-	# # # 	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels, embedding_mat = load_trained_params(os.path.dirname(os.path.dirname(checkpoint_dir)) + '/', training_mode=params['training_mode'])
-	# # # 	if params['embedding_dim'] != np.shape(embedding_mat)[1]:
-	# # # 			params['embedding_dim'] = np.shape(embedding_mat)[1]
-	# # # 			logging.critical("Embedding dimension in training config file does not match existing embeddings. Using the embedding dimension of pre trained embeddings.")
-	# # # else:
+
 	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels = data_helper.load_data(input_file)
 	params['sequence_length'] = x_.shape[1]
 	params['runname'] = runname
 	if params['pre_trained']:
-		pre_trained_vocabulary, pre_trained_embedding_mat = load_trained_params(os.path.dirname(os.path.dirname(os.path.dirname(checkpoint_dir))) + '/')
+		pre_trained_vocabulary, pre_trained_embedding_mat = load_trained_params(path + '/master_embeddings/', params['pre_trained_emb'])
 		word_embeddings, pre_trained_vocabulary, pre_trained_embedding_mat  = data_helper.load_pre_trained_embeddings(pre_trained_vocabulary, vocabulary, np.shape(pre_trained_embedding_mat)[1], pre_trained_embedding_mat)
 		if params['embedding_dim'] != np.shape(pre_trained_embedding_mat)[1]:
 			params['embedding_dim'] = np.shape(pre_trained_embedding_mat)[1]
@@ -336,7 +297,7 @@ def train_cnn_rnn():
 					logging.info('Calculated - Accuracy on dev set: {}'.format(accuracy))
 					if accuracy >= best_accuracy:
 						best_accuracy, best_at_step = accuracy, current_step
-						path = saver.save(sess, checkpoint_prefix, global_step=global_step)
+						saver.save(sess, checkpoint_prefix, global_step=global_step)
 						logging.critical('Best accuracy {} at step {}. Model saved'.format(best_accuracy, best_at_step))
 					logging.critical('....................................Completed {} steps of total {} steps. {} % Completed.'.format(current_step, num_batches,int(current_step/num_batches*100)))
 
@@ -387,7 +348,7 @@ def train_cnn_rnn():
 			output_var = tf.Variable(np_test_outputs, name=foldername + 'predict_viz')
 			sess.run(output_var.initializer)
 			final_embed_matrix = sess.run(cnn_rnn.emb_var)
-			embedding_var = tf.Variable(final_embed_matrix, name='embedding_viz' + str(i))
+			embedding_var = tf.Variable(final_embed_matrix, name='embedding_viz' )
 			saver_embed = tf.train.Saver([embedding_var, output_var])
 			sess.run(embedding_var.initializer)
 			config = projector.ProjectorConfig()
@@ -435,9 +396,9 @@ def train_cnn_rnn():
 
 	if params['pre_trained']:
 		master_emb = data_helper.update_master_emb(pre_trained_vocabulary, vocabulary, pre_trained_embedding_mat, word_embeddings)
-		with open(os.path.dirname(os.path.dirname(os.path.dirname(checkpoint_dir))) + '/master_embeddings.pickle', 'wb') as outfile:
+		with open(path + '/master_embeddings/' + params['pre_trained_emb'] + '_master_embeddings.pickle', 'wb') as outfile:
 			pickle.dump(master_emb, outfile, pickle.HIGHEST_PROTOCOL)
-		with open(os.path.dirname(os.path.dirname(os.path.dirname(checkpoint_dir)))  + '/master_vocabulary.json', 'w') as outfile: #was word_index
+		with open(path  + '/master_embeddings/' + params['pre_trained_emb'] + '_master_vocabulary.json', 'w') as outfile: #was word_index
 			json.dump(pre_trained_vocabulary, outfile, indent=4, ensure_ascii=False)
 			
 

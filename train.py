@@ -60,15 +60,14 @@ To implement:
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-def load_trained_params(trained_dir):
-	# params = json.loads(open(trained_dir + 'trained_parameters.json').read())
-	# words_index = json.loads(open(trained_dir + 'words_index.json').read())
-	# labels = json.loads(open(trained_dir + 'labels.json').read())
 
-	with open(trained_dir + 'embeddings.pickle', 'rb') as input_file:
+def load_trained_params(trained_dir, filename):
+	vocabulary = json.loads(open(trained_dir + filename + '_master_vocabulary.json').read())
+	with open(trained_dir + filename +  '_master_embeddings.pickle', 'rb') as input_file:
 		fetched_embedding = pickle.load(input_file)
 	embedding_mat = np.array(fetched_embedding, dtype=np.float32)
-	return embedding_mat
+	return vocabulary, embedding_mat
+
 
 def gather_all(batchs, labels=None):
 	items = []
@@ -142,18 +141,11 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, title='Confusi
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
 	base_dir = path + sys.argv[1] +'/'
-	#base_dir = path + 'CashAndCashEquivalentsAtCarryingValue/'
-	for f in os.listdir(base_dir):
-		if f.endswith(".pickle"):
-			input_file = base_dir + f
-
-	# try:
-	# 	training_config = path + sys.argv[2]
-	# 	params = json.loads(open(training_config).read())
-	# 	params['continue_training']=True
-	# except IndexError:
-	#training_config = './code/training_config.json'
+	filename = re.sub(r"[^A-Za-z]", "", sys.argv[1])
+	#base_dir = path + 'Base AssetsCurrent/'
+	input_file = base_dir + filename +'.pickle'
 	training_config = base_dir + 'training_config.json'
+
 	params = json.loads(open(training_config).read())
 	params['continue_training'] = False
 
@@ -163,44 +155,43 @@ def train_cnn_rnn():
 			 ' fs:' + params['filter_sizes']  +' hu:'+ str(params['hidden_unit']) + ' l2:'+ \
 			 str(params['l2_reg_lambda'])+ ' mxps:' + str(params['max_pool_size']) + ' ep:'+ str(params['num_epochs'])
 
-	if params['continue_training']:
-		''' Continue training...'''
-		checkpoint_dir = os.path.dirname(training_config)
-		checkpoint_dir = checkpoint_dir + '/' +params['runname'] +'/'
-		i = str(params['folder_suffix'])
-	else:
-		checkpoint_dir = directory +'/'+ 'BiDRNN_AT_CNN' + '/'
-		''' i is a folder increment varaiable. Its also used to update the name of tsv file.'''
-		i = 1
-		if os.path.exists(checkpoint_dir):
-			while os.path.exists(directory  +'/'+ 'BiDRNN_AT_CNN'  + str(i) + '/'):
-				i += 1
-				''' dont del i as emb_viz is using for incremnting '''
-			checkpoint_dir = directory  +'/'+  'BiDRNN_AT_CNN'  + str(i) + '/' + runname + '/'
-		else:
-			''' This del is OK '''
-			del i
-			i = ''
-			checkpoint_dir = directory  +'/'+ 'BiDRNN_AT_CNN' + '/' + runname + '/'
-		params['folder_suffix'] = str(i)
+	checkpoint_dir = directory  +'/'+ 'BIDRNN_AT_CNN' + '/' + runname + '/'
+	if not os.path.exists(checkpoint_dir):
 		os.makedirs(checkpoint_dir)
-		
 	checkpoint_prefix = os.path.join(checkpoint_dir, foldername)
 
 	x_, y_, vocabulary, vocabulary_inv, vocabulary_count, df, labels, seqlen_data_ = data_helper.load_data(input_file)
-
-	'''
-	Assign a embedding_dim dimension vector to each word
-	'''
-	if params['continue_training']:
-		embedding_mat = load_trained_params(os.path.dirname(training_config)+'/')
+	params['sequence_length'] = x_.shape[1]
+	params['runname'] = runname
+	if params['pre_trained']:
+		pre_trained_vocabulary, pre_trained_embedding_mat = load_trained_params(path + '/master_embeddings/', params['pre_trained_emb'])
+		word_embeddings, pre_trained_vocabulary, pre_trained_embedding_mat  = data_helper.load_pre_trained_embeddings(pre_trained_vocabulary, vocabulary, np.shape(pre_trained_embedding_mat)[1], pre_trained_embedding_mat)
+		if params['embedding_dim'] != np.shape(pre_trained_embedding_mat)[1]:
+			params['embedding_dim'] = np.shape(pre_trained_embedding_mat)[1]
+			logging.critical("Embedding dimension in training config file does not match pre trained embeddings. Using the embedding dimension of pre trained embeddings.")
 	else:
 		word_embeddings = data_helper.load_embeddings(vocabulary, params['embedding_dim'])
-		embedding_mat = [word_embeddings[word] for index, word in enumerate(vocabulary_inv)]
-		embedding_mat = np.array(embedding_mat, dtype=np.float32)
-	'''
-	Split the original dataset into train set and test set
-	'''
+	embedding_mat = [word_embeddings[word] for index, word in enumerate(vocabulary_inv)]
+	embedding_mat = np.array(embedding_mat, dtype=np.float32)
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir)) + '/trained_parameters.json', 'w') as outfile:
+		json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/vocabulary.json', 'w') as outfile: #was word_index
+		json.dump(vocabulary, outfile, indent=4, ensure_ascii=False)
+	# # # with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/vocabulary_inv.json', 'w') as outfile:
+	# # # 	json.dump(vocabulary_inv, outfile, indent=4, ensure_ascii=False)
+	# # # with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/vocabulary_count.json', 'w') as outfile:
+	# # # 	json.dump(vocabulary_count, outfile, indent=4, ensure_ascii=False)
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/labels.json', 'w') as outfile:
+		json.dump(labels, outfile, indent=4, ensure_ascii=False)
+	# # # with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/x_.pickle', 'wb') as outfile:
+	# # # 	pickle.dump(x_, outfile, pickle.HIGHEST_PROTOCOL)
+	# # # with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/y_.pickle', 'wb') as outfile:
+	# # # 	pickle.dump(y_, outfile, pickle.HIGHEST_PROTOCOL)
+	# # # with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/df.pickle', 'wb') as outfile:
+	# # # 	pickle.dump(df, outfile, pickle.HIGHEST_PROTOCOL)
+
+	'''	Split the original dataset into train set and test set	'''
+
 	t_sz = 0.1
 	if len(x_) > 100000:
 		t_sz = 10000/len(x_)
@@ -210,24 +201,8 @@ def train_cnn_rnn():
 	logging.warning('y_train.shape[1] is : {}'.format(y_train.shape[1]))
 	params['sequence_length'] = x_train.shape[1]
 	params['runname'] = runname
-	with open(os.path.dirname(os.path.dirname(checkpoint_dir)) + '/trained_parameters.json', 'w') as outfile:
-		json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
-	'''
-	use folder name as subscript instead of 'model'
-	'''
-
-	'''
-	Save trained parameters and files since predict.py needs them
-	'''
-	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/words_index.json', 'w') as outfile:
-		json.dump(vocabulary, outfile, indent=4, ensure_ascii=False)
-	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/embeddings.pickle', 'wb') as outfile:
-		pickle.dump(embedding_mat, outfile, pickle.HIGHEST_PROTOCOL)
-	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/labels.json', 'w') as outfile:
-		json.dump(labels, outfile, indent=4, ensure_ascii=False)
-	'''
-	Emdeddings labels not trained
-	'''
+	
+	'''	Emdeddings labels not trained	'''
 
 
 	logging.info('x_train: {}, x_dev: {}, x_test: {}'.format(len(x_train), len(x_dev), len(x_test)))
@@ -300,13 +275,7 @@ def train_cnn_rnn():
                              cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
                              cnn_rnn.seqlen: seqlen_batch,}
 				_, step, summaries = sess.run([train_op, global_step, train_summary_op], feed_dict)
-				#_, step, predicts, corr_anws, summaries,_ = sess.run([train_op, global_step, cnn_rnn.predictions, cnn_rnn.currect_ans, train_summary_op, cnn_rnn.confusion_update], feed_dict)
 				train_summary_writer.add_summary(summaries, step)
-				# sess.run(tf.local_variables_initializer())
-				# _, step, pr_summaries = sess.run([cnn_rnn.update_op, global_step, pr_summary_op], feed_dict)
-				# pr_summary_writer.add_summary(pr_summaries, step)
-				# return predicts, corr_anws
-			
 
 			def dev_step(x_batch, seqlen_batch, y_batch):
 				feed_dict = {cnn_rnn.input_x: x_batch,
@@ -331,8 +300,16 @@ def train_cnn_rnn():
 
 				#print_tensors_in_checkpoint_file(tf.train.latest_checkpoint(checkpoint_dir), tensor_name='', all_tensors=True)
 
+
 			sess.run(tf.global_variables_initializer())
 			logging.critical('Training Started')
+			ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+			# if that checkpoint exists, restore from checkpoint
+			if ckpt and ckpt.model_checkpoint_path:
+				saver.restore(sess, ckpt.model_checkpoint_path)
+				logging.warning("Restoring checkpoint from {}".format(checkpoint_dir))
+			else:
+				logging.warning("No checkpoint files exist. Starting training from scratch.")
 
 
 			''' Training starts here '''
@@ -372,9 +349,7 @@ def train_cnn_rnn():
 					#logging.info('Model-Accuracy on dev set: {}'.format(acc))
 					if accuracy >= best_accuracy:
 						best_accuracy, best_at_step = accuracy, current_step
-						path = saver.save(sess, checkpoint_prefix, global_step=global_step)
-						#path = saver.save(sess, checkpoint_prefix +str(current_step) +'.ckpt')
-						#logging.critical('Saved model {} at step {} of total step {}'.format(path, best_at_step, num_batches))
+						saver.save(sess, checkpoint_prefix, global_step=global_step)
 						logging.critical('Best accuracy {} at step {}'.format(best_accuracy, best_at_step))
 					logging.critical('....................................Completed {} steps of total {} steps. {} % Completed.'.format(current_step, num_batches,int(current_step/num_batches*100)))
 
@@ -383,7 +358,6 @@ def train_cnn_rnn():
 			logging.critical('Training is complete, testing the best model on x_test and y_test')
 			''' Evaluate x_test and y_test '''
 			saver.restore(sess, tf.train.latest_checkpoint(checkpoint_dir))
-			#saver.restore(sess, checkpoint_prefix + str(best_at_step) +'.ckpt')
 			test_batches = data_helper.batch_iter(list(zip(x_test, y_test)), seqlen_data_test, params['batch_size'], 1, shuffle=False)
 			total_test_correct = 0
 			predictions, predict_labels, correct_anws, correct_labels, outputs, confidences, probs = [], [], [], [], [], [], []
@@ -428,7 +402,7 @@ def train_cnn_rnn():
 			sess.run(output_var.initializer)
 
 			final_embed_matrix = sess.run(cnn_rnn.emb_var)
-			embedding_var = tf.Variable(final_embed_matrix, name='embedding_viz' + str(i))
+			embedding_var = tf.Variable(final_embed_matrix, name='embedding_viz')
 			saver_embed = tf.train.Saver([embedding_var, output_var])
 			sess.run(embedding_var.initializer)
 			config = projector.ProjectorConfig()
@@ -449,11 +423,8 @@ def train_cnn_rnn():
 			# Compute confusion matrix
 			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm', normalize=False)
 			test_summary_writer.add_summary(img_summary)
-			
-
-
-
-	''' PR summaries and Confusion Matrix '''
+	
+	''' PR summaries '''
 	pr_graph = tf.Graph()
 	with pr_graph.as_default():
 		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -467,29 +438,26 @@ def train_cnn_rnn():
 			pr_sess.run([update_op])
 			test_summary_writer.add_summary(pr_sess.run(pr_summary_op))
 			test_summary_writer.close()
-
-
-
-
-
 	''' Result summaries accross all runs '''
 	result = '\n'+ foldername + ',' + str(params['documentation']) + ',' + str(params['standard_element']) + ',' + str(params['standard_ngrams']) + ',' + \
 			str(params['custom_elements']) + ',' + str(params['custom_ngrams']) + ',' + str(y_train.shape[1]) + ',' + str(len(x_)) + ',' + str(params['num_epochs']) + ',' + \
 			str(params['batch_size']) + ',' + str(params['dropout_keep_prob']) + ',' +  str(params['embedding_dim']) +',' +  '"'+str(params['filter_sizes'])+'"'+',' +\
 			str(params['hidden_unit']) +',' + str(params['l2_reg_lambda']) + ',' + str(params['max_pool_size']) + ',' + str(params['non_static']) + ',' +\
 			str(params['num_filters']) + ',' + str(float(total_test_correct)/len(y_test))
-
 	fd = open('Result_Summary.csv', 'a')
 	fd.write(result)
 	fd.close()
+	
+	with open(os.path.dirname(os.path.dirname(checkpoint_dir))  + '/embeddings.pickle', 'wb') as outfile:
+		pickle.dump(final_embed_matrix, outfile, pickle.HIGHEST_PROTOCOL)
 
-
-
-
-
-
-
-
+	if params['pre_trained']:
+		master_emb = data_helper.update_master_emb(pre_trained_vocabulary, vocabulary, pre_trained_embedding_mat, word_embeddings)
+		with open(path + '/master_embeddings/' + params['pre_trained_emb'] + '_master_embeddings.pickle', 'wb') as outfile:
+			pickle.dump(master_emb, outfile, pickle.HIGHEST_PROTOCOL)
+		with open(path  + '/master_embeddings/' + params['pre_trained_emb'] + '_master_vocabulary.json', 'w') as outfile: #was word_index
+			json.dump(pre_trained_vocabulary, outfile, indent=4, ensure_ascii=False)
+			
 
 if __name__ == '__main__':
 	train_cnn_rnn()

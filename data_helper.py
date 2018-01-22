@@ -52,6 +52,42 @@ def load_embeddings(vocabulary,embedding_dim):
 		word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
 	return word_embeddings
 
+
+def load_pre_trained_embeddings(pt_vocabulary, vocabulary, embedding_dim, pt_embedding_mat):
+	# # # word_embeddings = {}
+	# # # for word in pt_vocabulary:
+	# # # 	word_embeddings[word] = pt_embedding_mat[pt_vocabulary[word]]
+	# # # i = len(pt_vocabulary)-1
+	# # # for word in vocabulary:
+	# # # 	if word not in pt_vocabulary:
+	# # # 		word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
+	# # # 		i += 1
+	# # # 		pt_vocabulary[word] = i
+	# # # vocabulary_inv = list(pt_vocabulary.keys())
+	# # # return pt_vocabulary, vocabulary_inv, word_embeddings
+	word_embeddings = {}
+	i = len(pt_vocabulary)-1
+	for word in vocabulary:
+		if word in pt_vocabulary:
+			word_embeddings[word] = pt_embedding_mat[pt_vocabulary[word]]
+		else:
+			print(word)
+			word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
+			i += 1
+			pt_vocabulary[word] = i
+			pt_embedding_mat[pt_vocabulary[word]] = word_embeddings[word]
+	return word_embeddings, pt_vocabulary, pt_embedding_mat
+
+
+
+''' update master embeddings '''
+def update_master_emb(pt_vocabulary, vocabulary, pt_embedding_mat, word_embeddings ):
+	for word in vocabulary:
+		pt_embedding_mat[pt_vocabulary[word]] = word_embeddings[word]
+	return pt_embedding_mat
+	''' end update master embeddings '''
+
+
 def pad_sentences(sentences, padding_word="<PAD/>", forced_sequence_length=None):
 	if forced_sequence_length is None: # Train
 		sequence_length = max(len(x) for x in sentences)
@@ -95,16 +131,22 @@ def batch_iter(data, seqlen_data,  batch_size, num_epochs, shuffle=True):
 			end_index = min((batch_num + 1) * batch_size, data_size)
 			yield shuffled_data[start_index:end_index], seqlen_data[start_index:end_index]
 
-def load_data(filename,vocabulary=None):
+def load_data(filename):
 	df = pd.read_pickle(filename, compression='gzip')
 	#selected = ['category', 'element']
 	selected = ['category', 'element', 'element_name']
 	non_selected = list(set(df.columns) - set(selected))
 
 	df = df.drop(non_selected, axis=1)
+	df['element_name'] = df['element_name'].replace(' ', np.nan)
+	df['element'] = df['element'].replace(' ', np.nan)
+	df['element_name'] = df['element_name'].replace('', np.nan)
 	df['element'] = df['element'].replace('', np.nan)
 	df = df.dropna(axis=0, how='any', subset=selected)
-	df = df.reindex(np.random.permutation(df.index))
+	# print(df)
+	df = df.reset_index(drop=True)
+	# print(df)
+
 
 	labels = sorted(list(set(df[selected[0]].tolist())))
 	num_labels = len(labels)
@@ -120,15 +162,11 @@ def load_data(filename,vocabulary=None):
 	
 	x_raw = pad_sentences(x_raw)
 	print(seqlen_data)
-	if vocabulary is None:
-		vocabulary, vocabulary_inv, vocabulary_count = build_vocab(x_raw)
-		x = np.array([[vocabulary[word] for word in sentence] for sentence in x_raw])
-		y = np.array(y_raw)
-		return x, y, vocabulary, vocabulary_inv, vocabulary_count, df, labels, seqlen_data
-	else:
-		x = np.array([[vocabulary[word] for word in sentence] for sentence in x_raw])
-		y = np.array(y_raw)
-		return x, y, df, labels, seqlen_data
+
+	vocabulary, vocabulary_inv, vocabulary_count = build_vocab(x_raw)
+	x = np.array([[vocabulary[word] for word in sentence] for sentence in x_raw])
+	y = np.array(y_raw)
+	return x, y, vocabulary, vocabulary_inv, vocabulary_count, df, labels, seqlen_data
 
 	#df_voc.to_csv('./training/pickles/standard and documentation/training_sets/SFP/small_test/vocab.csv',sep="|")
 	

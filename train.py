@@ -313,7 +313,7 @@ def train_cnn_rnn():
 
 
 			''' Training starts here '''
-			num_batches = (int(len(x_train) / params['batch_size']) + 1)* params['num_epochs']
+			num_batches = global_step.eval() + (int(len(x_train) / params['batch_size']) + 1)* params['num_epochs']
 			train_batches = data_helper.batch_iter(list(zip(x_train, y_train)), seqlen_data_train, params['batch_size'], params['num_epochs'])
 			best_accuracy, best_at_step = 0, 0
 

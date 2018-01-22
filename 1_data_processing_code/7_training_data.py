@@ -42,7 +42,7 @@ def main():
     cc['SOI'] = pickle.load(open( path +'Categories/' + 'SOI_categories.pickle','rb'))
     cc['SCF'] = pickle.load(open( path +'Categories/' + 'SCF_categories.pickle','rb'))
     statements = ('SFP', 'SOI', 'SCF')
-    exclude = ('OtherAssetsCurrent')
+    exclude = ('OtherAssetsCurrent', 'OtherAssetsNoncurrent')
 
     # for i in range(0, 3):
     # logging.warning('Started Processing of ' + statements[i] +'.')
@@ -76,7 +76,7 @@ def main():
                 fld_spx += 1
             dest_dir = path + 'training_sets/' + statements[i] +'/' + folder_spx + str(fld_spx) + '/'
         os.makedirs(dest_dir)
-        dest_pickle_file = dest_dir + folder_spx +'.pickle'
+        dest_pickle_file = dest_dir + folder_spx
         dest_csv_file = dest_dir + folder_spx        
         fulldataset = pd.DataFrame(columns=['category', 'element'])
         df_c1 = pd.DataFrame(columns=['category', 'element', 'element_name'])
@@ -102,7 +102,7 @@ def main():
                 Define path for cleaned documentations. comment line below if you want to exclude document.
                 '''
                 doc_file = path + 'cleaned_docs/' +  (data['element']) +'.pickle'
-                if os.path.isfile(doc_file) and data['element'] not in exclude:
+                if os.path.isfile(doc_file) and params['classify_element'] != data['element'] and data['element'] not in exclude:
                     dof = pd.read_pickle(doc_file, compression='gzip')
                     dof['element_name'] = dof['category']
                     dof['category'] = data['category']
@@ -112,6 +112,48 @@ def main():
                     logging.warning('       Completed loading documentation of ' + data['element'] +'.')
                 else:
                     logging.warning(doc_file + ' does not exist.')
+
+
+            if params['custom_elements']:
+                cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
+                cust_data1 = pd.DataFrame(columns=['category', 'element'])
+                cust_data2 = pd.DataFrame(columns=['category', 'element'])
+                if os.path.isfile(cust_file) and params['classify_element'] != data['element'] and data['element'] not in exclude: #(cats[0]!=data['element']):
+                    df_ce = pd.read_pickle(cust_file, compression='gzip')
+                    if df_ce['category'].count()>0:
+                        cust_data1['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
+                        cust_data2['element'] = df_ce['element']
+                        cust_data1['element_name'] = df_ce['element']
+                        cust_data2['element_name'] = df_ce['element']
+                        cust_data1['category'] = data['category']
+                        cust_data2['category'] = data['category']
+                        fulldataset = pd.concat([fulldataset, cust_data1, cust_data2], ignore_index=True)
+                        del df_ce
+                        del cust_data1
+                        del cust_data2
+                        gc.collect()
+                        logging.warning('       Completed loading custom elements of {}.'. format(data['element']))
+                else:
+                    logging.warning(cust_file + ' does not exist.')
+
+
+            if params['custom_documentation']:
+                cust_file = path + 'custom_documentation/'+ (data['element']) +'.pickle'
+                cust_data = pd.DataFrame(columns=['category', 'element'])
+                if os.path.isfile(cust_file) and params['classify_element'] != data['element'] and data['element'] not in exclude: #(cats[0]!=data['element']):
+                    df_ce = pd.read_pickle(cust_file, compression='gzip')
+                    if df_ce['category'].count()>0:
+                        cust_data['element'] = df_ce['documentation']
+                        cust_data['element_name'] = data['element'] 
+                        cust_data['category'] = data['category']
+                        fulldataset = pd.concat([fulldataset, cust_data], ignore_index=True)
+                        del df_ce
+                        del cust_data
+                        gc.collect()
+                        
+                        logging.warning('       Completed loading custom documentation of {}.'. format(data['element']))
+                else:
+                    logging.warning(cust_file + ' does not exist.')
         
         
 
@@ -161,7 +203,7 @@ def main():
             # # #     Define path for cleaned documentations. comment line below if you want to exclude document.
             # # #     '''
             # # #     doc_file = path + 'cleaned_docs/' +  (data['element']) +'.pickle'
-            # # #     if os.path.isfile(doc_file) and data['element'] not in exclude:
+            # # #     if os.path.isfile(doc_file) and params['classify_element'] != data['element'] and data['element'] not in exclude:
             # # #         dof = pd.read_pickle(doc_file, compression='gzip')
             # # #         dof = dof.head(n=Thres)
             # # #         cat_counts[data['category']] = cat_counts[data['category']] + len(dof.index)
@@ -177,85 +219,85 @@ def main():
             Loading base elements combinations or ngrams. comment the IF BLOCK below if you want to exclude base element combinations.
             '''
             
-            if params['custom_elements'] or cat_counts[data['category']] < Thres:
-                cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
-                cust_data1 = pd.DataFrame(columns=['category', 'element'])
-                cust_data2 = pd.DataFrame(columns=['category', 'element'])
-                if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
-                    df_ce = pd.read_pickle(cust_file, compression='gzip')
-                    df_ce = df_ce.head(n=int(Thres/2))
-                    cat_counts[data['category']] = cat_counts[data['category']] + len(df_ce.index)
-                    if df_ce['category'].count()>0:
-                        cust_data1['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
-                        cust_data2['element'] = df_ce['element']
-                        cust_data1['element_name'] = df_ce['element']
-                        cust_data2['element_name'] = df_ce['element']
-                        cust_data1['category'] = data['category']
-                        cust_data2['category'] = data['category']
-                        fulldataset = pd.concat([fulldataset, cust_data1, cust_data2], ignore_index=True)
-                        del df_ce
-                        del cust_data1
-                        del cust_data2
-                        gc.collect()
-                        logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
-                else:
-                    logging.warning(cust_file + ' does not exist.')
+            # # # if params['custom_elements'] or cat_counts[data['category']] < Thres:
+            # # #     cust_file = path + 'custom_elements_processed/'+ (data['element']) +'.pickle'
+            # # #     cust_data1 = pd.DataFrame(columns=['category', 'element'])
+            # # #     cust_data2 = pd.DataFrame(columns=['category', 'element'])
+            # # #     if os.path.isfile(cust_file) and params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']:
+            # # #         df_ce = pd.read_pickle(cust_file, compression='gzip')
+            # # #         df_ce = df_ce.head(n=int(Thres/2))
+            # # #         cat_counts[data['category']] = cat_counts[data['category']] + len(df_ce.index)
+            # # #         if df_ce['category'].count()>0:
+            # # #             cust_data1['element'] = df_ce['element'].str.replace(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ')
+            # # #             cust_data2['element'] = df_ce['element']
+            # # #             cust_data1['element_name'] = df_ce['element']
+            # # #             cust_data2['element_name'] = df_ce['element']
+            # # #             cust_data1['category'] = data['category']
+            # # #             cust_data2['category'] = data['category']
+            # # #             fulldataset = pd.concat([fulldataset, cust_data1, cust_data2], ignore_index=True)
+            # # #             del df_ce
+            # # #             del cust_data1
+            # # #             del cust_data2
+            # # #             gc.collect()
+            # # #             logging.warning('       Completed loading custom elements of {}.'. format(data['element']))
+            # # #     else:
+            # # #         logging.warning(cust_file + ' does not exist.')
 
 
-            if params['custom_documentation'] or cat_counts[data['category']] < Thres:
-                cust_file = path + 'custom_documentation/'+ (data['element']) +'.pickle'
-                cust_data = pd.DataFrame(columns=['category', 'element'])
-                if (os.path.isfile(cust_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
-                    df_ce = pd.read_pickle(cust_file, compression='gzip')
-                    df_ce = df_ce.head(n=Thres)
-                    cat_counts[data['category']] = cat_counts[data['category']] + len(df_ce.index)
+            # # # if params['custom_documentation'] or cat_counts[data['category']] < Thres:
+            # # #     cust_file = path + 'custom_documentation/'+ (data['element']) +'.pickle'
+            # # #     cust_data = pd.DataFrame(columns=['category', 'element'])
+            # # #     if os.path.isfile(cust_file) and params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']:
+            # # #         df_ce = pd.read_pickle(cust_file, compression='gzip')
+            # # #         df_ce = df_ce.head(n=Thres)
+            # # #         cat_counts[data['category']] = cat_counts[data['category']] + len(df_ce.index)
                 
-                    if df_ce['category'].count()>0:
-                        cust_data['element'] = df_ce['documentation']
-                        cust_data['element_name'] = data['element'] 
-                        cust_data['category'] = data['category']
-                        fulldataset = pd.concat([fulldataset, cust_data], ignore_index=True)
-                        del df_ce
-                        del cust_data
-                        gc.collect()
+            # # #         if df_ce['category'].count()>0:
+            # # #             cust_data['element'] = df_ce['documentation']
+            # # #             cust_data['element_name'] = data['element'] 
+            # # #             cust_data['category'] = data['category']
+            # # #             fulldataset = pd.concat([fulldataset, cust_data], ignore_index=True)
+            # # #             del df_ce
+            # # #             del cust_data
+            # # #             gc.collect()
                         
-                        logging.warning('       Completed loading custom elements of ' + data['element'] +'.')
+            # # #             logging.warning('       Completed loading custom documentation of {}.'. format(data['element']))
+            # # #     else:
+            # # #         logging.warning(cust_file + ' does not exist.')
+
+            if params['standard_ngrams'] or cat_counts[data['category']] < Thres:
+                combi_file = path + 'clean_element_combinations/'+ (data['element']) +'.pickle'
+                if os.path.isfile(combi_file) and params['classify_element'] != data['element'] and data['element'] not in exclude:
+                    df_c = pd.read_pickle(combi_file, compression='gzip')
+                    df_c = df_c.head(n=Thres)
+                    cat_counts[data['category']] = cat_counts[data['category']] + len(df_c.index)
+                    df_c['element_name'] = data['element']
+                    df_c['category'] = data['category']
+                    fulldataset = pd.concat([fulldataset, df_c], ignore_index=True)
+                    del df_c
+                    gc.collect()
+                    logging.warning('       Completed loading combinations of ' + data['element'] +'.')
                 else:
-                    logging.warning(cust_file + ' does not exist.')
-
-            # # # if params['standard_ngrams'] or cat_counts[data['category']] < Thres:
-            # # #     combi_file = path + 'clean_element_combinations/'+ (data['element']) +'.pickle'
-            # # #     if os.path.isfile(combi_file):
-            # # #         df_c = pd.read_pickle(combi_file, compression='gzip')
-            # # #         df_c = df_c.head(n=Thres)
-            # # #         cat_counts[data['category']] = cat_counts[data['category']] + len(df_c.index)
-            # # #         df_c['element_name'] = data['element']
-            # # #         df_c['category'] = data['category']
-            # # #         fulldataset = pd.concat([fulldataset, df_c], ignore_index=True)
-            # # #         del df_c
-            # # #         gc.collect()
-            # # #         logging.warning('       Completed loading combinations of ' + data['element'] +'.')
-            # # #     else:
-            # # #         logging.warning(combi_file + ' does not exist.')             
+                    logging.warning(combi_file + ' does not exist.')             
 
 
-            # # # if params['custom_ngrams'] or cat_counts[data['category']] < Thres:
-            # # #     cust_combi_file = path + 'cleaned_custom_element_combination/'+ (data['element']) +'.pickle'
-            # # #     cust_combi_data = pd.DataFrame(columns=['category', 'element'])
-            # # #     if (os.path.isfile(cust_combi_file)) and (params['classify_element'] != data['element'] and data['element'] not in exclude): #(cats[0]!=data['element']):
-            # # #         df_cc = pd.read_pickle(cust_combi_file, compression='gzip')
-            # # #         df_cc = df_cc.head(n=Thres)
-            # # #         cat_counts[data['category']] = cat_counts[data['category']] + len(df_cc.index)
-            # # #         cust_combi_data['element'] = df_cc['element']
-            # # #         cust_combi_data['element_name'] = data['element']
-            # # #         cust_combi_data['category'] = data['category']
-            # # #         fulldataset = pd.concat([fulldataset, cust_combi_data], ignore_index=True)
-            # # #         del df_cc
-            # # #         del cust_combi_data
-            # # #         gc.collect()
-            # # #         logging.warning('       Completed loading custom combinations of ' + data['element'] +'.')
-            # # #     else:
-            # # #         logging.warning(combi_file + ' does not exist.')
+            if params['custom_ngrams'] or cat_counts[data['category']] < Thres:
+                cust_combi_file = path + 'cleaned_custom_element_combination/'+ (data['element']) +'.pickle'
+                cust_combi_data = pd.DataFrame(columns=['category', 'element'])
+                if os.path.isfile(cust_combi_file) and params['classify_element'] != data['element'] and data['element'] not in exclude: #(cats[0]!=data['element']):
+                    df_cc = pd.read_pickle(cust_combi_file, compression='gzip')
+                    df_cc = df_cc.head(n=Thres)
+                    cat_counts[data['category']] = cat_counts[data['category']] + len(df_cc.index)
+                    cust_combi_data['element'] = df_cc['element']
+                    cust_combi_data['element_name'] = data['element']
+                    cust_combi_data['category'] = data['category']
+                    fulldataset = pd.concat([fulldataset, cust_combi_data], ignore_index=True)
+                    del df_cc
+                    del cust_combi_data
+                    gc.collect()
+                    logging.warning('       Completed loading custom combinations of ' + data['element'] +'.')
+                else:
+                    logging.warning(combi_file + ' does not exist.')
             
 
         del dataset
@@ -283,28 +325,28 @@ def main():
             cat_counts = dict(fulldataset.category.value_counts())
 
 
-        ''' consolidate low count items '''
-        df_low_count = pd.DataFrame(columns=['category', 'element', 'element_name'])
-        for key, value in OD.items():
-            print(df_low_count)
-            if value < int(Thres/2) and key!=params['classify_element']:
-                df_low_count = df_low_count.append(fulldataset.where(fulldataset['category'] == key).dropna().reset_index())
-                df_low_count.reset_index()
-                fulldataset.loc[fulldataset.category == key, 'category'] = params['classify_element'] + '_lowcount'
+        # # # ''' consolidate low count items '''
+        # # # df_low_count = pd.DataFrame(columns=['category', 'element', 'element_name'])
+        # # # for key, value in OD.items():
+        # # #     print(df_low_count)
+        # # #     if value < int(Thres/2) and key!=params['classify_element']:
+        # # #         df_low_count = df_low_count.append(fulldataset.where(fulldataset['category'] == key).dropna().reset_index())
+        # # #         df_low_count.reset_index()
+        # # #         fulldataset.loc[fulldataset.category == key, 'category'] = params['classify_element'] + '_lowcount'
                 
-        ''' end consolidate low count class '''
+        # # # ''' end consolidate low count class '''
 
         OD  = OrderedDict(sorted(cat_counts.items(), key=lambda t: t[1]))
         Thres = int((max(OD.values())+min(OD.values()))/2)
         Thres_min = int((max(OD.values())-min(OD.values()))/2)
         print("Thres {}".format(Thres))
-        fulldataset.to_pickle(dest_pickle_file, compression='gzip')
+        fulldataset.to_pickle(dest_pickle_file+'.pickle', compression='gzip')
         fulldataset.to_csv(dest_csv_file+'.csv')
-        df_low_count.to_pickle(dest_pickle_file +'_low_ct', compression='gzip')
-        df_low_count.to_csv(dest_csv_file + '_low_ct.csv')
+        # # # df_low_count.to_pickle(dest_pickle_file  + '_low_ct.pickle', compression='gzip')
+        # # # df_low_count.to_csv(dest_csv_file + '_low_ct.csv')
 
         print(fulldataset.category.value_counts())
-        print(df_low_count.category.value_counts())
+        # # # print(df_low_count.category.value_counts())
         with open(dest_dir + '/training_config.json', 'w') as outfile:
             json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
         logging.warning('       Pickled ' + dest_pickle_file +'.')

@@ -25,7 +25,7 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S
 
 def clean_str(s):
 	#s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.
-
+	#s = re.sub(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ', s)
 	s = re.sub(r"[^A-Za-z0-9$#@:(),!?\'\`]", " ", s)
 	s = re.sub(r" : ", ":", s)
 	s = re.sub(r"\'s", " \'s", s)
@@ -67,6 +67,7 @@ def load_pre_trained_embeddings(pt_vocabulary, vocabulary, embedding_dim, pt_emb
 	# # # return pt_vocabulary, vocabulary_inv, word_embeddings
 	word_embeddings = {}
 	i = len(pt_vocabulary)-1
+	print(np.shape(pt_embedding_mat))
 	for word in vocabulary:
 		if word in pt_vocabulary:
 			word_embeddings[word] = pt_embedding_mat[pt_vocabulary[word]]
@@ -75,7 +76,9 @@ def load_pre_trained_embeddings(pt_vocabulary, vocabulary, embedding_dim, pt_emb
 			word_embeddings[word] = np.random.uniform(-0.25, 0.25, embedding_dim)
 			i += 1
 			pt_vocabulary[word] = i
-			pt_embedding_mat[pt_vocabulary[word]] = word_embeddings[word]
+			pt_embedding_mat = np.append(pt_embedding_mat, [word_embeddings[word]], axis=0 )
+			#pt_embedding_mat[pt_vocabulary[word]] = word_embeddings[word]
+	print(np.shape(pt_embedding_mat))
 	return word_embeddings, pt_vocabulary, pt_embedding_mat
 
 

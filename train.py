@@ -98,11 +98,13 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='M
 	ax.set_yticklabels(classes, fontsize=8 if len(classes) < 10 else 4, va='center')
 	ax.yaxis.set_label_position('left')
 	ax.yaxis.tick_left()
+	thresh = cm.max()/2
 	for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-		ax.text(j, i, format(cm[i, j], 'd') if cm[i, j] != 0 else '.', horizontalalignment="center", fontsize=10 if len(classes) < 10 else 6, verticalalignment='center', color="black")
+		ax.text(j, i, format(cm[i, j], 'd') if cm[i,j]!=0 else '.', horizontalalignment="center", fontsize=10 if len(classes) < 10 else 6 , verticalalignment='center',   color="white" if cm[i, j] > thresh else "black")
 	fig.set_tight_layout(True)
 	summary = tfplot.figure.to_summary(fig, tag=tensor_name)
 	return summary
+
 
 def train_cnn_rnn():
 	path = './training/pickles/standard and documentation/training_sets/SFP/'
@@ -290,15 +292,15 @@ def train_cnn_rnn():
 						correct_labels = correct_labels + l
 						
 					# Compute confusion matrix
-					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/cm', normalize=False)
+					img_d_summary = plot_confusion_matrix(correct_labels, predict_labels, labels, tensor_name='dev/CNN_cm', normalize=False)
 					dev_summary_writer.add_summary(img_d_summary, current_step)
 				
 					accuracy = float(total_dev_correct) / len(y_dev)
-					logging.info('Calculated - Accuracy on dev set: {}'.format(accuracy))
+					logging.info('Calculated - Accuracy on dev set: {}'.format(round(accuracy*100,ndigits=2)))
 					if accuracy >= best_accuracy:
 						best_accuracy, best_at_step = accuracy, current_step
 						saver.save(sess, checkpoint_prefix, global_step=global_step)
-						logging.critical('Best accuracy {} at step {}. Model saved'.format(best_accuracy, best_at_step))
+						logging.critical('Best accuracy {} at step {}. Model saved'.format(round(best_accuracy*100,ndigits=2), best_at_step))
 					logging.critical('....................................Completed {} steps of total {} steps. {} % Completed.'.format(current_step, num_batches,int(current_step/num_batches*100)))
 
 			dev_summary_writer.close()
@@ -329,9 +331,9 @@ def train_cnn_rnn():
 
 			probs = np.array(probs)
 			y_test = np.array(y_test)
-			df_meta = pd.DataFrame(columns=['Predicted', 'Category', 'Confidence', 'Element'])
-			df_meta['Element'] = pd.concat([df['element_name'][ind_test]], ignore_index=True).replace('\n', '-n')
-			#df_meta['element'] = pd.concat([df['element'][ind_test]], ignore_index=True).replace('\n', '', regex=True)
+			df_meta = pd.DataFrame(columns=['Predicted', 'Category', 'Confidence', 'Element','Element_Name'])
+			df_meta['Element_Name'] = pd.concat([df['element_name'][ind_test]], ignore_index=True).replace('\n', '-n')
+			df_meta['Element'] = pd.concat([df['element'][ind_test]], ignore_index=True).replace('\n', '-n')
 			df_meta['Predicted'] = predict_labels
 			df_meta['Category'] = correct_labels
 			df_meta['Confidence'] = [round(x*100) for x in confidences]
@@ -343,7 +345,7 @@ def train_cnn_rnn():
 			lst = zip(vocabulary_inv, vocabulary_count)
 			tsv_df = pd.DataFrame.from_records(lst, columns=['Label', 'Count'])
 			tsv_df.to_csv(test_summary_dir + '/metadata.tsv', sep='\t', columns=['Label', 'Count'], index=False)
-			logging.critical('Accuracy on test set: {}'.format(float(total_test_correct) / len(y_test)))
+			logging.critical('Accuracy on test set: {}'.format(round(100*float(total_test_correct) / len(y_test), ndigits=2)))
 			df_meta.to_pickle(test_summary_dir + '/' + foldername +'_metadata.pickle', compression='gzip')
 			output_var = tf.Variable(np_test_outputs, name=foldername + 'predict_viz')
 			sess.run(output_var.initializer)
@@ -364,7 +366,7 @@ def train_cnn_rnn():
 
 			
 			'''  Compute confusion matrix  '''
-			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/cm', normalize=False)
+			img_summary = plot_confusion_matrix(correct_labels, predict_labels, labels,tensor_name='test/CNN_cm', normalize=False)
 			test_summary_writer.add_summary(img_summary)
 
 	''' PR summaries '''

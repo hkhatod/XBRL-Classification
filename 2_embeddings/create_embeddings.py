@@ -24,8 +24,8 @@ BATCH_SIZE = 256
 EMBED_SIZE = 300 # dimension of the word embedding vectors
 SKIP_WINDOW = 1 # the context window
 NUM_SAMPLED = 256    # Number of negative examples to sample.
-LEARNING_RATE = 0.00001
-NUM_TRAIN_STEPS = 11999
+LEARNING_RATE = 0.001
+NUM_TRAIN_STEPS = 1500000
 WEIGHTS_FLD = 'processed/'
 SKIP_STEP = 2000
 

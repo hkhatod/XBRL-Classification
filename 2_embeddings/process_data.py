@@ -17,9 +17,9 @@ import re
 
 # Parameters for downloading data
 DOWNLOAD_URL = 'http://mattmahoney.net/dc/'
-EXPECTED_BYTES = 1462417     #31344016
+EXPECTED_BYTES = 15785688      #31344016
 DATA_FOLDER = './data/'
-FILE_NAME = 'Assets.zip'
+FILE_NAME = 'finstmt_corpus.zip'
 
 def clean_str(s):
 	#s = re.sub(r"[^A-Za-z0-9:(),!?\'\`]", " ", s)  #re.sub(r"[^A-Za-z0-9:() !?\'\`]", "", s) # keep space, remove comma and strip other vs replave with space.

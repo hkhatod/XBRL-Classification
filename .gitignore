@@ -60,3 +60,5 @@ __pycache__/data_helper.cpython-36.pyc
 2_embeddings/processed/vocab_1000.tsv
 __pycache__/data_helper.cpython-36.pyc
 __pycache__/text_cnn_rnn.cpython-36.pyc
+__pycache__/data_helper.cpython-36.pyc
+__pycache__/text_cnn_rnn.cpython-36.pyc
